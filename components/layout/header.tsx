@@ -4,12 +4,15 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon } from "lucide-react"
+import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { usePathname } from "next/navigation"
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  
+  const pathname = usePathname();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -28,7 +31,7 @@ const Header = () => {
 
   const navLinks = [
     { name: "Home", href: "/home", icon: <Home className="w-4 h-4 mr-2" /> },
-    { name: "Price Suggestion", href: "/price-suggestion", icon: null },
+    { name: "Price Suggestion", href: "/price-suggestion", icon: <DollarSign className="w-4 h-4 mr-2" /> },
     { name: "Buyer Dashboard", href: "/buyer/dashboard", icon: <Home className="w-4 h-4 mr-2" /> },
     { name: "Seller Dashboard", href: "/seller/dashboard", icon: <Building className="w-4 h-4 mr-2" /> },
     { name: "Admin Dashboard", href: "/admin/dashboard", icon: <UsersIcon className="w-4 h-4 mr-2" /> },
@@ -59,8 +62,17 @@ const Header = () => {
               key={link.name}
               href={link.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-primary flex items-center",
-                isScrolled ? "text-foreground" : "text-foreground/90"
+                "text-sm font-medium transition-colors flex items-center px-3 py-1 rounded-md",
+                isScrolled ? "text-foreground" : "text-foreground/90",
+                pathname === link.href &&
+                  (
+                    link.name === "Home" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-100 font-semibold" :
+                    link.name === "Price Suggestion" ? "bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-100 font-semibold" :
+                    link.name === "Buyer Dashboard" ? "bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100 font-semibold" :
+                    link.name === "Seller Dashboard" ? "bg-purple-100 text-purple-900 dark:bg-purple-900/60 dark:text-purple-100 font-semibold" :
+                    link.name === "Admin Dashboard" ? "bg-pink-100 text-pink-900 dark:bg-pink-900/60 dark:text-pink-100 font-semibold" :
+                    "bg-muted font-semibold"
+                  )
               )}
             >
               {link.icon}
@@ -100,7 +112,18 @@ const Header = () => {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-foreground py-2 flex items-center font-medium"
+                className={cn(
+                  "text-foreground py-2 flex items-center font-medium rounded-md px-3",
+                  pathname === link.href &&
+                    (
+                      link.name === "Home" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-100 font-semibold" :
+                      link.name === "Price Suggestion" ? "bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-100 font-semibold" :
+                      link.name === "Buyer Dashboard" ? "bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-100 font-semibold" :
+                      link.name === "Seller Dashboard" ? "bg-purple-100 text-purple-900 dark:bg-purple-900/60 dark:text-purple-100 font-semibold" :
+                      link.name === "Admin Dashboard" ? "bg-pink-100 text-pink-900 dark:bg-pink-900/60 dark:text-pink-100 font-semibold" :
+                      "bg-muted font-semibold"
+                    )
+                )}
               >
                 {link.icon}
                 {link.name}
