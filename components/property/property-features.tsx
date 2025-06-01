@@ -1,20 +1,24 @@
-import { Bed, Bath, Home, Ruler, Building, Tag } from "lucide-react"
+import { Bed, Home, Ruler, Building, ChefHat, Trees } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 
 interface PropertyFeaturesProps {
   bedrooms: number;
-  bathrooms: number;
+  floors: number;
+  kitchens: number;
   area: number;
-  areaUnit: string;
+  areaUnit: 'Marla' | 'Kanal';
   propertyType: string;
+  hasLawn: boolean;
 }
 
 export default function PropertyFeatures({ 
   bedrooms, 
-  bathrooms, 
+  floors,
+  kitchens,
   area, 
   areaUnit,
-  propertyType
+  propertyType,
+  hasLawn
 }: PropertyFeaturesProps) {
   const features = [
     {
@@ -23,9 +27,14 @@ export default function PropertyFeatures({
       value: bedrooms.toString()
     },
     {
-      icon: <Bath className="h-5 w-5 text-emerald-600" />,
-      label: "Bathrooms",
-      value: bathrooms.toString()
+      icon: <Home className="h-5 w-5 text-emerald-600" />,
+      label: "Floors",
+      value: floors.toString()
+    },
+    {
+      icon: <ChefHat className="h-5 w-5 text-emerald-600" />,
+      label: "Kitchens",
+      value: kitchens.toString()
     },
     {
       icon: <Ruler className="h-5 w-5 text-emerald-600" />,
@@ -39,11 +48,20 @@ export default function PropertyFeatures({
     }
   ]
 
+  // Add lawn feature if property has a lawn
+  if (hasLawn) {
+    features.push({
+      icon: <Trees className="h-5 w-5 text-emerald-600" />,
+      label: "Garden/Lawn",
+      value: "Available"
+    })
+  }
+
   return (
     <div>
       <h2 className="font-poppins text-xl font-semibold mb-4">Features</h2>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-6">
         {features.map((feature, index) => (
           <div key={index} className="flex flex-col items-center text-center">
             <div className="mb-2">

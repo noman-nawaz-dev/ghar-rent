@@ -67,16 +67,21 @@ export default function HomePage() {
             </div>
             <div className="col-span-1 md:col-span-2">
               <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground mb-2">Price Range (PKR)</span>
-                <Slider 
-                  defaultValue={[20000, 80000]} 
-                  max={200000} 
-                  step={5000}
-                  className="mb-1" 
-                />
+                <Select>
+                  <SelectTrigger className="mb-1">
+                    <SelectValue placeholder="Select Price Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20000-40000">PKR 20,000 - 40,000</SelectItem>
+                    <SelectItem value="40001-80000">PKR 40,001 - 80,000</SelectItem>
+                    <SelectItem value="80001-120000">PKR 80,001 - 120,000</SelectItem>
+                    <SelectItem value="120001-200000">PKR 120,001 - 200,000</SelectItem>
+                    <SelectItem value="200001+">PKR 200,001+</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>PKR 20,000</span>
-                  <span>PKR 200,000</span>
+                  <span>PKR 200,000+</span>
                 </div>
               </div>
             </div>
@@ -107,7 +112,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
             {propertyData.map((property) => (
               <PropertyCard 
                 key={property.id}

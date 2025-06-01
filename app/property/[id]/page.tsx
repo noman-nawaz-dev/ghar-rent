@@ -73,6 +73,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             <div>
               <h2 className="font-poppins text-xl font-semibold mb-4">Property Details</h2>
               <p className="text-muted-foreground">{property.description}</p>
+              {property.additionalInfo && (
+                <div className="mt-4">
+                  <h3 className="font-medium mb-2">Additional Information</h3>
+                  <p className="text-muted-foreground">{property.additionalInfo}</p>
+                </div>
+              )}
             </div>
             
             <Separator />
@@ -80,10 +86,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             {/* Property Features */}
             <PropertyFeatures 
               bedrooms={property.bedrooms}
-              bathrooms={property.bathrooms}
+              floors={property.floors}
+              kitchens={property.kitchens}
               area={property.area}
               areaUnit={property.areaUnit}
               propertyType={property.propertyType}
+              hasLawn={property.hasLawn}
             />
             
             <Separator />

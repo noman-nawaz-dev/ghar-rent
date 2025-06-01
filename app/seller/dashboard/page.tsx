@@ -16,7 +16,6 @@ import {
   XCircle,
   DollarSign,
   Home,
-  CalendarDays
 } from "lucide-react"
 import { propertyData } from "@/lib/data/properties"
 import { PendingRequestsTable } from "@/components/seller/pending-requests"

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Bed, Bath, Phone, MapPin, ArrowUpRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Bed, Home, Phone, MapPin, ArrowUpRight, ChefHat, Trees } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Property } from "@/lib/data/properties"
 
@@ -42,8 +42,8 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     <Link href={`/property/${property.id}`}>
       <Card 
         className={cn(
-          "group overflow-hidden border border-border transition-all duration-300",
-          isHovered ? "shadow-md border-emerald-200 dark:border-emerald-900" : "shadow-sm"
+          "group overflow-hidden border border-border transition-all duration-300 bg-white dark:bg-zinc-900 shadow-lg hover:shadow-2xl hover:-translate-y-1 scale-[1.01]",
+          isHovered ? "border-emerald-200 dark:border-emerald-900" : ""
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -120,17 +120,27 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 <span className="text-sm">{property.bedrooms}</span>
               </div>
               <div className="flex items-center">
-                <Bath className="h-4 w-4 mr-1 text-muted-foreground" />
-                <span className="text-sm">{property.bathrooms}</span>
+                <Home className="h-4 w-4 mr-1 text-muted-foreground" />
+                <span className="text-sm">{property.floors}F</span>
               </div>
-              <div className="text-sm">
-                {property.area} {property.areaUnit}
+              <div className="flex items-center">
+                <ChefHat className="h-4 w-4 mr-1 text-muted-foreground" />
+                <span className="text-sm">{property.kitchens}</span>
               </div>
+              {property.hasLawn && (
+                <div className="flex items-center">
+                  <Trees className="h-4 w-4 mr-1 text-emerald-600" />
+                </div>
+              )}
             </div>
+          </div>
+          
+          <div className="mt-3 text-sm">
+            <span className="font-medium">{property.area} {property.areaUnit}</span>
           </div>
         </CardContent>
         
-        <CardFooter className="p-4 pt-0 flex items-center justify-between border-t mt-4">
+        <CardFooter className="p-4 pt-0 flex items-center justify-between mt-4">
           <div>
             <p className="font-semibold text-emerald-600">
               PKR {formatPrice(property.price)}<span className="text-muted-foreground font-normal text-sm">/month</span>
