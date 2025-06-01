@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Menu, X, Home, User, LogIn } from "lucide-react"
+import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const Header = () => {
@@ -29,6 +29,9 @@ const Header = () => {
   const navLinks = [
     { name: "Home", href: "/home", icon: <Home className="w-4 h-4 mr-2" /> },
     { name: "Price Suggestion", href: "/price-suggestion", icon: null },
+    { name: "Buyer Dashboard", href: "/buyer/dashboard", icon: <Home className="w-4 h-4 mr-2" /> },
+    { name: "Seller Dashboard", href: "/seller/dashboard", icon: <Building className="w-4 h-4 mr-2" /> },
+    { name: "Admin Dashboard", href: "/admin/dashboard", icon: <UsersIcon className="w-4 h-4 mr-2" /> },
     { name: "Login", href: "/auth/login", icon: <LogIn className="w-4 h-4 mr-2" /> },
     { name: "Register", href: "/auth/register", icon: <User className="w-4 h-4 mr-2" /> },
   ]

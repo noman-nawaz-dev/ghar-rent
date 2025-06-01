@@ -11,7 +11,7 @@ const Footer = () => {
               GharRent
             </h3>
             <p className="text-muted-foreground mb-4">
-              Pakistan's premier platform for finding and renting properties.
+              Pakistan&apos;s premier platform for finding and renting properties.
               We connect home owners with potential tenants seamlessly.
             </p>
             <div className="flex space-x-4">
