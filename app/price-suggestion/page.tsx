@@ -35,9 +35,11 @@ const formSchema = z.object({
   area: z.string().min(1, { message: "Area is required" }),
   areaUnit: z.string().default("Marla"),
   bedrooms: z.string().min(1, { message: "Please select number of bedrooms" }),
-  bathrooms: z.string().min(1, { message: "Please select number of bathrooms" }),
+  floors: z.string().min(1, { message: "Please select number of floors" }),
+  kitchens: z.string().min(1, { message: "Please select number of kitchens" }),
+  hasLawn: z.boolean().default(false),
   city: z.string().min(1, { message: "City is required" }),
-  location: z.string().min(3, { message: "Location must be at least 3 characters" }),
+  address: z.string().min(3, { message: "Address must be at least 3 characters" }),
   furnishingStatus: z.string().default("unfurnished"),
   additionalInfo: z.string().optional(),
 })
@@ -55,9 +57,11 @@ export default function PriceSuggestionPage() {
       area: "",
       areaUnit: "Marla",
       bedrooms: "",
-      bathrooms: "",
+      floors: "",
+      kitchens: "",
+      hasLawn: false,
       city: "",
-      location: "",
+      address: "",
       furnishingStatus: "unfurnished",
       additionalInfo: "",
     },
@@ -104,14 +108,20 @@ export default function PriceSuggestionPage() {
     // Add for bedrooms
     const bedroomPrice = parseInt(data.bedrooms) * 5000
     
-    // Add for bathrooms
-    const bathroomPrice = parseInt(data.bathrooms) * 3000
+    // Add for floors
+    const floorPrice = parseInt(data.floors) * 2000
+    
+    // Add for kitchens
+    const kitchenPrice = parseInt(data.kitchens) * 1000
+    
+    // Add for lawn
+    const lawnPrice = data.hasLawn ? 3000 : 0
     
     // Furnished status
     const furnishingMultiplier = data.furnishingStatus === 'furnished' ? 1.2 : 1.0
     
     // Calculate total
-    let totalPrice = (basePrice + bedroomPrice + bathroomPrice) * furnishingMultiplier
+    let totalPrice = (basePrice + bedroomPrice + floorPrice + kitchenPrice + lawnPrice) * furnishingMultiplier
     
     // Add slight randomness for realism
     const randomFactor = 0.95 + (Math.random() * 0.1) // between 0.95 and 1.05
@@ -251,27 +261,73 @@ export default function PriceSuggestionPage() {
                         )}
                       />
                       
-                      {/* Bathrooms */}
+                      {/* Floors */}
                       <FormField
                         control={form.control}
-                        name="bathrooms"
+                        name="floors"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Bathrooms</FormLabel>
+                            <FormLabel>Floors</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select number of bathrooms" />
+                                  <SelectValue placeholder="Select number of floors" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {[1, 2, 3, 4, 5, 6].map((num) => (
+                                {[1, 2, 3, 4, 5].map((num) => (
                                   <SelectItem key={num} value={num.toString()}>
-                                    {num} {num === 1 ? 'Bathroom' : 'Bathrooms'}
+                                    {num} {num === 1 ? 'Floor' : 'Floors'}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Kitchens */}
+                      <FormField
+                        control={form.control}
+                        name="kitchens"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Kitchens</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select number of kitchens" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {[1, 2, 3, 4].map((num) => (
+                                  <SelectItem key={num} value={num.toString()}>
+                                    {num} {num === 1 ? 'Kitchen' : 'Kitchens'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Has Lawn */}
+                      <FormField
+                        control={form.control}
+                        name="hasLawn"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Has Lawn</FormLabel>
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={e => field.onChange(e.target.checked)}
+                                className="ml-2"
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -307,18 +363,18 @@ export default function PriceSuggestionPage() {
                         )}
                       />
                       
-                      {/* Location */}
+                      {/* Address */}
                       <FormField
                         control={form.control}
-                        name="location"
+                        name="address"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Specific Location/Society</FormLabel>
+                            <FormLabel>Address / Society</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. DHA Phase 5, Bahria Town" {...field} />
+                              <Input placeholder="e.g. DHA Phase 5, Bahria Town" value={field.value as string} onChange={field.onChange} />
                             </FormControl>
                             <FormDescription>
-                              Enter housing society or area name
+                              Enter housing society, area name, or address
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
