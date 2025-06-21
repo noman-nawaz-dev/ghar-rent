@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { useSupabaseBrowser } from "@/lib/SupabaseClient"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -30,6 +31,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = useSupabaseBrowser()
   
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -42,32 +44,48 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
     
-    try {
-      // This would be an actual API call in a real application
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      console.log(`Logging in as ${activeTab}:`, values)
-      
-      toast({
-        title: "Login Successful",
-        description: `You've logged in as a ${activeTab}.`,
-      })
-      
-      // Redirect based on user type
-      if (activeTab === "buyer") {
-        router.push("/home")
-      } else if (activeTab === "seller") {
-        router.push("/seller/dashboard")
-      }
-    } catch (error) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    })
+
+    if (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: error.message,
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
+      return
     }
+    
+    const { data: user, error: userError } = await supabase.from("users").select("role").single()
+
+    if (userError || !user) {
+      toast({
+        title: "Login Failed",
+        description: "Could not retrieve user profile. Please try again.",
+        variant: "destructive",
+      })
+      // sign out user if profile doesn't exist
+      await supabase.auth.signOut()
+    } else {
+      toast({
+        title: "Login Successful",
+        description: `You've logged in as a ${user.role}.`,
+      })
+
+      if (user.role === "buyer") {
+        router.push("/home")
+      } else if (user.role === "seller") {
+        router.push("/seller/dashboard")
+      } else {
+        // Handle other roles or default case
+        router.push("/")
+      }
+    }
+
+    setIsLoading(false)
   }
 
   return (

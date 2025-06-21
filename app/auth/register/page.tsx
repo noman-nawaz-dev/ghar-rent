@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
+import { useSupabaseBrowser } from "@/lib/SupabaseClient"
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -37,6 +38,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = useSupabaseBrowser()
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -51,29 +53,59 @@ export default function RegisterPage() {
   
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true)
-    
-    try {
-      // This would be an actual API call in a real application
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      console.log(`Registering as ${activeTab}:`, values)
-      
-      toast({
-        title: "Registration Successful",
-        description: `Your ${activeTab} account has been created.`,
-      })
-      
-      // Redirect to login
-      router.push("/auth/login")
-    } catch (error) {
+
+    const { email, password, name, phone } = values
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    console.log(authData)
+
+    if (authError) {
       toast({
         title: "Registration Failed",
-        description: "There was an error creating your account. Please try again.",
+        description: authError.message,
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
+      return
     }
+
+    if (!authData.user) {
+      toast({
+        title: "Registration Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+      return
+    }
+
+    const { error: insertError } = await supabase.from("users").insert({
+      id: authData.user.id,
+      name,
+      email,
+      phone,
+      role: activeTab as "buyer" | "seller",
+    })
+
+    if (insertError) {
+      toast({
+        title: "Registration Failed",
+        description: `Failed to create user profile: ${insertError.message}`,
+        variant: "destructive",
+      })
+    } else {
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. Please check your email to verify.",
+      })
+      router.push("/auth/login")
+    }
+
+    setIsLoading(false)
   }
 
   return (
