@@ -9,8 +9,15 @@ import { propertyData } from "@/lib/data/properties"
 import RentRequestForm from "@/components/property/rent-request-form"
 import PageNotFound from "@/components/ui/page-not-found"
 
-export default function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const property = propertyData.find(p => p.id === params.id)
+// Updated interface for Next.js 15
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function PropertyDetailPage({ params }: PageProps) {
+  // Await the params in Next.js 15
+  const { id } = await params
+  const property = propertyData.find(p => p.id === id)
   
   if (!property) {
     return <PageNotFound message="Property not found" />

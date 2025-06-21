@@ -33,14 +33,14 @@ import { Calculator, Sparkles } from "lucide-react"
 const formSchema = z.object({
   propertyType: z.string().min(1, { message: "Please select property type" }),
   area: z.string().min(1, { message: "Area is required" }),
-  areaUnit: z.string().default("Marla"),
+  areaUnit: z.string().min(1, { message: "Please select area unit" }),
   bedrooms: z.string().min(1, { message: "Please select number of bedrooms" }),
   floors: z.string().min(1, { message: "Please select number of floors" }),
   kitchens: z.string().min(1, { message: "Please select number of kitchens" }),
-  hasLawn: z.boolean().default(false),
+  hasLawn: z.boolean(),
   city: z.string().min(1, { message: "City is required" }),
   address: z.string().min(3, { message: "Address must be at least 3 characters" }),
-  furnishingStatus: z.string().default("unfurnished"),
+  furnishingStatus: z.string().min(1, { message: "Please select furnishing status" }),
   additionalInfo: z.string().optional(),
 })
 
@@ -318,16 +318,21 @@ export default function PriceSuggestionPage() {
                         control={form.control}
                         name="hasLawn"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Has Lawn</FormLabel>
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
                               <input
                                 type="checkbox"
                                 checked={field.value}
-                                onChange={e => field.onChange(e.target.checked)}
-                                className="ml-2"
+                                onChange={field.onChange}
+                                className="mt-1"
                               />
                             </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Has Lawn</FormLabel>
+                              <FormDescription>
+                                Check if the property has a lawn or garden
+                              </FormDescription>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -371,7 +376,7 @@ export default function PriceSuggestionPage() {
                           <FormItem>
                             <FormLabel>Address / Society</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. DHA Phase 5, Bahria Town" value={field.value as string} onChange={field.onChange} />
+                              <Input placeholder="e.g. DHA Phase 5, Bahria Town" {...field} />
                             </FormControl>
                             <FormDescription>
                               Enter housing society, area name, or address
@@ -449,8 +454,8 @@ export default function PriceSuggestionPage() {
                     >
                       {isCalculating ? (
                         <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white\" xmlns="http://www.w3.org/2000/svg\" fill="none\" viewBox="0 0 24 24">
-                            <circle className="opacity-25\" cx="12\" cy="12\" r="10\" stroke="currentColor\" strokeWidth="4"></circle>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
                           Calculating...
