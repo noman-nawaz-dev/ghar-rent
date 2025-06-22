@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -40,6 +40,21 @@ export default function LoginPage() {
       password: "",
     },
   })
+  
+  useEffect(() => {
+    const checkSession = async () => {
+      const sessionRes = await supabase.auth.getSession()
+      const session = sessionRes.data.session
+      if (session) {
+        const { data: user } = await supabase.from("users").select("role").eq("id", session.user.id).single()
+        if (user?.role === "buyer") router.replace("/home")
+        else if (user?.role === "seller") router.replace("/seller/dashboard")
+        else if (user?.role === "admin") router.replace("/admin/dashboard")
+      }
+    }
+    checkSession()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
