@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSupabaseBrowser } from '@/lib/SupabaseClient'
 import { useToast } from '@/hooks/use-toast'
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const supabase = useSupabaseBrowser()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -92,4 +92,18 @@ export default function AuthCallback() {
       </div>
     </div>
   )
-} 
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
+  )
+}
