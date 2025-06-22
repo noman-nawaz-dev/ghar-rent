@@ -108,6 +108,16 @@ export default function RegisterPage() {
     setIsLoading(false)
   }
 
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/auth/callback?role=${activeTab}`,
+      },
+    })
+  }
+
   return (
     <div className="min-h-screen pt-28 pb-16 flex items-center justify-center">
       <div className="container mx-auto px-4 max-w-md">
@@ -254,6 +264,7 @@ export default function RegisterPage() {
             className="w-full" 
             type="button"
             disabled={isLoading}
+            onClick={handleGoogleSignIn}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path
