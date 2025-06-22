@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useContext } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useSupabaseBrowser } from "@/lib/SupabaseClient"
+import { AuthContext, AuthContextType } from "../../../context/AuthContext"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = useSupabaseBrowser()
+  const { isLoggedIn, userRole } = useContext(AuthContext) as AuthContextType;
   
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -41,21 +43,13 @@ export default function LoginPage() {
     },
   })
   
-  useEffect(() => {
-    const checkSession = async () => {
-      const sessionRes = await supabase.auth.getSession()
-      const session = sessionRes.data.session
-      if (session) {
-        const { data: user } = await supabase.from("users").select("role").eq("id", session.user.id).single()
-        if (user?.role === "buyer") router.replace("/home")
-        else if (user?.role === "seller") router.replace("/seller/dashboard")
-        else if (user?.role === "admin") router.replace("/admin/dashboard")
-      }
-    }
-    checkSession()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  
+  // Redirect if already logged in (use context)
+  if (isLoggedIn && userRole) {
+    if (userRole === "buyer") router.replace("/home")
+    else if (userRole === "seller") router.replace("/seller/dashboard")
+    else if (userRole === "admin") router.replace("/admin/dashboard")
+  }
+
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
     
@@ -74,31 +68,7 @@ export default function LoginPage() {
       return
     }
     
-    const { data: user, error: userError } = await supabase.from("users").select("role").single()
-
-    if (userError || !user) {
-      toast({
-        title: "Login Failed",
-        description: "Could not retrieve user profile. Please try again.",
-        variant: "destructive",
-      })
-      // sign out user if profile doesn't exist
-      await supabase.auth.signOut()
-    } else {
-      toast({
-        title: "Login Successful",
-        description: `You've logged in as a ${user.role}.`,
-      })
-
-      if (user.role === "buyer") {
-        router.push("/home")
-      } else if (user.role === "seller") {
-        router.push("/seller/dashboard")
-      } else {
-        // Handle other roles or default case
-        router.push("/")
-      }
-    }
+    // No need to fetch user or role here, context will handle routing
 
     setIsLoading(false)
   }

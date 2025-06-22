@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useContext } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { useSupabaseBrowser } from "@/lib/SupabaseClient"
+import { AuthContext, AuthContextType } from "../../../context/AuthContext"
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -39,6 +40,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = useSupabaseBrowser()
+  const { isLoggedIn, userRole } = useContext(AuthContext) as AuthContextType;
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -51,20 +53,12 @@ export default function RegisterPage() {
     },
   })
   
-  useEffect(() => {
-    const checkSession = async () => {
-      const sessionRes = await supabase.auth.getSession()
-      const session = sessionRes.data.session
-      if (session) {
-        const { data: user } = await supabase.from("users").select("role").eq("id", session.user.id).single()
-        if (user?.role === "buyer") router.replace("/home")
-        else if (user?.role === "seller") router.replace("/seller/dashboard")
-        else if (user?.role === "admin") router.replace("/admin/dashboard")
-      }
-    }
-    checkSession()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Redirect if already logged in (use context)
+  if (isLoggedIn && userRole) {
+    if (userRole === "buyer") router.replace("/home")
+    else if (userRole === "seller") router.replace("/seller/dashboard")
+    else if (userRole === "admin") router.replace("/admin/dashboard")
+  }
   
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true)
