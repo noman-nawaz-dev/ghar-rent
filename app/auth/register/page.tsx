@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useContext } from "react"
+import { useState, useContext, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,8 +21,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { useSupabaseBrowser } from "@/lib/SupabaseClient"
+import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/hooks/useAuth"
+
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -38,8 +39,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = useSupabaseBrowser()
-  const { isLoggedIn, currentUser} = useAuth()
+  const { isLoggedIn, currentUser } = useAuth()
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -52,12 +52,18 @@ export default function RegisterPage() {
     },
   })
   
-  // Redirect if already logged in (use context)
-  if (isLoggedIn && currentUser?.role) {
-    if (currentUser?.role === "buyer") router.replace("/home")
-    else if (currentUser?.role === "seller") router.replace("/seller/dashboard")
-    else if (currentUser?.role === "admin") router.replace("/admin/dashboard")
-  }
+  // Handle redirect in useEffect to avoid render-time side effects
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.role) {
+      if (currentUser?.role === "buyer") {
+        router.replace("/home")
+      } else if (currentUser?.role === "seller") {
+        router.replace("/seller/dashboard")
+      } else if (currentUser?.role === "admin") {
+        router.replace("/admin/dashboard")
+      }
+    }
+  }, [isLoggedIn, currentUser, router])
   
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true)
@@ -124,6 +130,18 @@ export default function RegisterPage() {
         redirectTo: `${location.origin}/auth/callback?role=${activeTab}`,
       },
     })
+  }
+
+  // Optionally show a loading state while redirecting
+  if (isLoggedIn && currentUser?.role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

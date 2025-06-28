@@ -41,7 +41,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <Header />
-            <main className="min-h-[calc(100vh-12rem)]">{children}</main>
+            <main>{children}</main>
             <Footer />
             <Toaster />
           </ThemeProvider>

@@ -7,16 +7,15 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePathname, useRouter } from "next/navigation"
-import { useSupabaseBrowser } from "@/lib/SupabaseClient"
 import { useAuth } from "@/hooks/useAuth"
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   
   const pathname = usePathname();
   const router = useRouter();
   const { isLoggedIn, currentUser, logout } = useAuth()
-  const supabase = useSupabaseBrowser();
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
   // Define all nav links with allowed roles
@@ -46,10 +45,31 @@ const Header = () => {
   const rightNavLinks = filteredNavLinks.filter(link => link.group === "right");
 
   const handleLogout = async () => {
-    await logout();
-    setIsMobileMenuOpen(false);
-    router.push("/");
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setIsMobileMenuOpen(false);
+      router.push("/");
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen && !(event.target as Element).closest('header')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-3xl border-b shadow-sm supports-[backdrop-filter]:bg-background/60">
@@ -86,12 +106,25 @@ const Header = () => {
               </Link>
             ))}
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 relative z-[10001]">
             <ModeToggle />
             {rightNavLinks.map((link) => (
               link.name === "Logout" ? (
-                <Button key={link.name} variant="outline" className="ml-2" onClick={handleLogout}>
-                  Logout
+                <Button 
+                  key={link.name} 
+                  variant="outline" 
+                  className="ml-2" 
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      Logging out...
+                    </>
+                  ) : (
+                    "Logout"
+                  )}
                 </Button>
               ) : link.name === "Explore Properties" ? (
                 <Button key={link.name} asChild className="bg-emerald-600 hover:bg-emerald-700">
@@ -117,7 +150,7 @@ const Header = () => {
         </nav>
         
         {/* Mobile Menu Button */}
-        <div className="flex items-center md:hidden space-x-4">
+        <div className="flex items-center md:hidden space-x-4 relative z-[10001]">
           <ModeToggle />
           <Button 
             variant="ghost" 
@@ -136,7 +169,7 @@ const Header = () => {
       
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-b pb-4">
+        <div className="md:hidden bg-background border-b pb-4 relative z-[10000]">
           <nav className="container mx-auto px-4 flex flex-col space-y-3 pt-2">
             <div className="flex flex-col space-y-2">
               {leftNavLinks.map((link) => (
@@ -165,8 +198,21 @@ const Header = () => {
             <div className="flex flex-col space-y-2 mt-4 border-t pt-4">
               {rightNavLinks.map((link) => (
                 link.name === "Logout" ? (
-                  <Button key={link.name} variant="outline" className="w-full mt-2" onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}>
-                    Logout
+                  <Button 
+                    key={link.name} 
+                    variant="outline" 
+                    className="w-full mt-2" 
+                    onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
+                    disabled={isLoggingOut}
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        Logging out...
+                      </>
+                    ) : (
+                      "Logout"
+                    )}
                   </Button>
                 ) : link.name === "Explore Properties" ? (
                   <Button key={link.name} asChild className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700">

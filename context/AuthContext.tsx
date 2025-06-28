@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseBrowser } from "@/lib/SupabaseClient";
+import { supabase } from "@/lib/supabase.client";
 import { getUserById } from "@/lib/data/users";
 import { User } from "@/lib/data/users";
 
@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const supabase = useSupabaseBrowser();
   const router = useRouter();
 
   useEffect(() => {

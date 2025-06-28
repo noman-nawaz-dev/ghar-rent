@@ -2,11 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSupabaseBrowser } from '@/lib/SupabaseClient'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase.client'
 
 function AuthCallbackContent() {
-  const supabase = useSupabaseBrowser()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
