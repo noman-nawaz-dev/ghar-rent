@@ -22,8 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { useSupabaseBrowser } from "@/lib/SupabaseClient"
-import { AuthContext, AuthContextType } from "../../../context/AuthContext"
-
+import { useAuth } from "@/hooks/useAuth"
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -40,7 +39,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = useSupabaseBrowser()
-  const { isLoggedIn, userRole } = useContext(AuthContext) as AuthContextType;
+  const { isLoggedIn, currentUser} = useAuth()
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -54,10 +53,10 @@ export default function RegisterPage() {
   })
   
   // Redirect if already logged in (use context)
-  if (isLoggedIn && userRole) {
-    if (userRole === "buyer") router.replace("/home")
-    else if (userRole === "seller") router.replace("/seller/dashboard")
-    else if (userRole === "admin") router.replace("/admin/dashboard")
+  if (isLoggedIn && currentUser?.role) {
+    if (currentUser?.role === "buyer") router.replace("/home")
+    else if (currentUser?.role === "seller") router.replace("/seller/dashboard")
+    else if (currentUser?.role === "admin") router.replace("/admin/dashboard")
   }
   
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {

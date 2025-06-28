@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +20,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Home, MapPin, Phone, User, Camera, Banknote, Ruler, Building, Bed, TreePine } from "lucide-react";
+import { PropertyService } from "@/lib/database/properties";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 const propertyTypes = ["House", "Apartment", "Villa", "Penthouse"];
 const areaUnits = ["Marla", "Kanal"];
@@ -39,7 +43,7 @@ const formSchema = z.object({
   additionalInfo: z.string().optional(),
   address: z.string().min(3, "Address is required"),
   city: z.enum(["Islamabad", "Lahore", "Karachi"]),
-  images: z.string().min(1, "At least one image URL is required"),
+  images: z.array(z.string()).optional(),
   sellerPhone: z.string().min(6, "Phone is required"),
   sellerName: z.string().min(2, "Name is required"),
   status: z.enum(["Available", "Pending", "Rented"]),
@@ -50,7 +54,10 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function AddPropertyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const { toast } = useToast();
+  const { isLoggedIn, currentUser } = useAuth()
+  const router = useRouter();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -67,7 +74,7 @@ export default function AddPropertyPage() {
       additionalInfo: "",
       address: "",
       city: "Islamabad",
-      images: "",
+      images: [],
       sellerPhone: "",
       sellerName: "",
       status: "Available",
@@ -75,16 +82,119 @@ export default function AddPropertyPage() {
     },
   });
 
-  const onSubmit = (values: FormValues) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
+  // Watch the images field to debug
+  const watchedImages = form.watch('images');
+  console.log('Watched images:', watchedImages);
+
+  const handleImagesUploaded = (urls: string[]) => {
+    console.log('Images uploaded:', urls);
+    setUploadedImages(urls);
+    form.setValue('images', urls);
+    
+    // Show feedback to user
+    if (urls.length > 0) {
       toast({
-        title: "Property Added!",
-        description: "Your property has been listed successfully.",
+        title: "Images Uploaded",
+        description: `${urls.length} image(s) uploaded successfully.`,
       });
-      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (values: FormValues) => {
+    console.log('Form values:', values);
+    console.log('Uploaded images:', uploadedImages);
+    console.log('Form images field:', values.images);
+    
+    if (!isLoggedIn) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add a property.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentUser?.role !== 'seller' && currentUser?.role !== 'admin') {
+      toast({
+        title: "Access Denied",
+        description: "Only sellers can add properties.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (uploadedImages.length === 0) {
+      toast({
+        title: "Images Required",
+        description: "Please upload at least one image of your property.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Get current user ID from auth context
+      const currentUser = await getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        throw new Error("User not authenticated");
+      }
+
+      const propertyData = {
+        title: values.title,
+        description: values.description,
+        price: values.price,
+        area: values.area,
+        area_unit: values.areaUnit,
+        bedrooms: values.bedrooms,
+        floors: values.floors,
+        kitchens: values.kitchens,
+        has_lawn: values.hasLawn || false,
+        additional_info: values.additionalInfo || null,
+        address: values.address,
+        city: values.city,
+        images: uploadedImages,
+        seller_id: currentUser.id,
+        seller_phone: values.sellerPhone,
+        seller_name: values.sellerName,
+        status: values.status,
+        property_type: values.propertyType,
+      };
+
+      const { data, error } = await PropertyService.insertProperty(propertyData);
+
+      if (error) {
+        throw new Error(error.message || "Failed to add property");
+      }
+
+      toast({
+        title: "Property Added Successfully!",
+        description: "Your property has been listed and is now visible to potential tenants.",
+      });
+
+      // Reset form
       form.reset();
-    }, 1500);
+      setUploadedImages([]);
+      
+      // Redirect to seller dashboard
+      router.push("/seller/dashboard");
+
+    } catch (error: any) {
+      console.error("Error adding property:", error);
+      toast({
+        title: "Error Adding Property",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to get current user
+  const getCurrentUser = async () => {
+    return { id: currentUser?.id };
   };
 
   const getStatusColor = (status: string) => {
@@ -427,23 +537,24 @@ export default function AddPropertyPage() {
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Media & Contact Information</h3>
                   </div>
                   
-                  <FormField
-                    control={form.control}
-                    name="images"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">Property Images</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Enter image URLs separated by commas..."
-                            className="border-input focus:border-emerald-500 focus:ring-emerald-500"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-4">
+                    <FormLabel className="text-sm font-medium text-foreground">Property Images</FormLabel>
+                    <ImageUpload 
+                      onImagesUploaded={handleImagesUploaded}
+                      maxFiles={5}
+                      className="mt-2"
+                    />
+                    {uploadedImages.length > 0 && (
+                      <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                        ✓ {uploadedImages.length} image(s) uploaded successfully
+                      </div>
                     )}
-                  />
+                    {uploadedImages.length === 0 && (
+                      <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                        ⚠ Please upload at least one image of your property
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField

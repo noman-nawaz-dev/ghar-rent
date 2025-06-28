@@ -8,7 +8,7 @@ import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon, DollarSign } 
 import { cn } from "@/lib/utils"
 import { usePathname, useRouter } from "next/navigation"
 import { useSupabaseBrowser } from "@/lib/SupabaseClient"
-import { AuthContext, AuthContextType } from "../../context/AuthContext"
+import { useAuth } from "@/hooks/useAuth"
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -16,7 +16,7 @@ const Header = () => {
   
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoggedIn, userRole, loading, logout } = useContext(AuthContext) as AuthContextType;
+  const { isLoggedIn, currentUser, logout } = useAuth()
   const supabase = useSupabaseBrowser();
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
@@ -42,7 +42,7 @@ const Header = () => {
     );
   }
 
-  let filteredNavLinks = getUserNavLinks(isLoggedIn, userRole);
+  let filteredNavLinks = getUserNavLinks(isLoggedIn, currentUser?.role || null);
   const leftNavLinks = filteredNavLinks.filter(link => link.group === "left");
   const rightNavLinks = filteredNavLinks.filter(link => link.group === "right");
 

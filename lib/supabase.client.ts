@@ -1,0 +1,11 @@
+'use client'
+
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
+
+// Get environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Create and export a single Supabase client instance
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey) 

@@ -2,11 +2,13 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseBrowser } from "@/lib/SupabaseClient";
+import { getUserById } from "@/lib/data/users";
+import { User } from "@/lib/data/users";
 
 export type AuthContextType = {
   isLoggedIn: boolean;
-  userRole: string | null;
   loading: boolean;
+  currentUser: User | null;
   logout: () => Promise<void>;
 };
 
@@ -14,8 +16,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const supabase = useSupabaseBrowser();
   const router = useRouter();
 
@@ -26,10 +28,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const session = sessionRes.data.session;
       setIsLoggedIn(!!session);
       if (session) {
-        const { data: user } = await supabase.from("users").select("role").eq("id", session.user.id).single();
-        setUserRole(user?.role || null);
+        const user = await getUserById(session.user.id)
+        setCurrentUser(user || null);
       } else {
-        setUserRole(null);
+        setCurrentUser(null);
       }
       setLoading(false);
     };
@@ -46,12 +48,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     await supabase.auth.signOut();
     setIsLoggedIn(false);
-    setUserRole(null);
+    setCurrentUser(null);
     router.push("/");
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, userRole, loading, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, loading, currentUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
