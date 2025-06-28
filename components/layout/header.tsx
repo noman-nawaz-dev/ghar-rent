@@ -7,13 +7,16 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Menu, X, Home, User, LogIn, Building, Users as UsersIcon, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePathname, useRouter } from "next/navigation"
+import { useSupabaseBrowser } from "@/lib/SupabaseClient"
 import { useAuth } from "@/hooks/useAuth"
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  
   const pathname = usePathname();
   const router = useRouter();
   const { isLoggedIn, currentUser, logout } = useAuth()
+  const supabase = useSupabaseBrowser();
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
   // Define all nav links with allowed roles
