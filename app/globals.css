@@ -65,5 +65,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-top: 4.5rem; /* Account for fixed header height */
   }
 }

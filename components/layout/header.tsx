@@ -11,7 +11,6 @@ import { useSupabaseBrowser } from "@/lib/SupabaseClient"
 import { useAuth } from "@/hooks/useAuth"
 
 const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   const pathname = usePathname();
@@ -53,14 +52,7 @@ const Header = () => {
   };
 
   return (
-    <header 
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled 
-          ? "bg-background/95 backdrop-blur-md border-b shadow-sm" 
-          : "bg-transparent"
-      )}
-    >
+    <header className="fixed top-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-3xl border-b shadow-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center">
           <span className="font-poppins text-xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
@@ -77,7 +69,7 @@ const Header = () => {
                 href={link.href}
                 className={cn(
                   "text-sm font-medium transition-colors flex items-center px-4 py-2 rounded-md",
-                  isScrolled ? "text-foreground" : "text-foreground/90",
+                  "text-foreground",
                   pathname === link.href &&
                     (
                       link.name === "Home" ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-100 font-semibold" :
@@ -111,7 +103,7 @@ const Header = () => {
                   href={link.href}
                   className={cn(
                     "text-sm font-medium transition-colors flex items-center px-4 py-2 rounded-md",
-                    isScrolled ? "text-foreground" : "text-foreground/90",
+                    "text-foreground",
                     pathname === link.href && "bg-muted font-semibold",
                     (link.name === "Login" || link.name === "Register") && "hover:bg-muted"
                   )}
