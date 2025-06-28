@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { useSupabaseBrowser } from "@/lib/SupabaseClient"
+import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/hooks/useAuth"
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -38,7 +38,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = useSupabaseBrowser()
   const { isLoggedIn, currentUser} = useAuth()
   
   const form = useForm<z.infer<typeof registerSchema>>({

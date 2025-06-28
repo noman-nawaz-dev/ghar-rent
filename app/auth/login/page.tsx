@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { useSupabaseBrowser } from "@/lib/SupabaseClient"
+import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/hooks/useAuth"
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -31,7 +31,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = useSupabaseBrowser()
   const {isLoggedIn, currentUser}= useAuth()
 
   const form = useForm<z.infer<typeof loginSchema>>({

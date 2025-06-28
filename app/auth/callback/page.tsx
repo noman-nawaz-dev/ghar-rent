@@ -2,11 +2,11 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSupabaseBrowser } from '@/lib/SupabaseClient'
+import { supabase } from '@/lib/supabase.client'
 import { useToast } from '@/hooks/use-toast'
+import { FullScreenLoader } from '@/components/ui/loader'
 
 function AuthCallbackContent() {
-  const supabase = useSupabaseBrowser()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -86,23 +86,13 @@ function AuthCallbackContent() {
   }, [supabase, router, searchParams, toast, processed])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center">
-        <p className="text-lg">Please wait while we are authenticating...</p>
-      </div>
-    </div>
+    <FullScreenLoader text="Please wait while we are authenticating..." />
   )
 }
 
 export default function AuthCallback() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<FullScreenLoader text="Loading..." />}>
       <AuthCallbackContent />
     </Suspense>
   )
