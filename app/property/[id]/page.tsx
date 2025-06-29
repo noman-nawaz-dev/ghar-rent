@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -5,24 +9,30 @@ import { Separator } from "@/components/ui/separator"
 import PropertyGallery from "@/components/property/property-gallery"
 import PropertyFeatures from "@/components/property/property-features"
 import { ArrowLeft, MapPin, Calendar, Phone, Mail } from "lucide-react"
-import { propertyData } from "@/lib/data/properties"
+import { PropertyService, PropertyRow } from "@/lib/database/properties"
 import RentRequestForm from "@/components/property/rent-request-form"
 import PageNotFound from "@/components/ui/page-not-found"
 
-// Updated interface for Next.js 15
-interface PageProps {
-  params: Promise<{ id: string }>
-}
+export default function PropertyDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [property, setProperty] = useState<PropertyRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-export default async function PropertyDetailPage({ params }: PageProps) {
-  // Await the params in Next.js 15
-  const { id } = await params
-  const property = propertyData.find(p => p.id === id)
-  
-  if (!property) {
-    return <PageNotFound message="Property not found" />
-  }
-  
+  useEffect(() => {
+    async function fetchProperty() {
+      setLoading(true);
+      const { data, error } = await PropertyService.getPropertyById(id);
+      if (error || !data) {
+        setNotFound(true);
+      } else {
+        setProperty(data);
+      }
+      setLoading(false);
+    }
+    if (id) fetchProperty();
+  }, [id]);
+
   const formatPrice = (price: number) => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
@@ -33,6 +43,14 @@ export default async function PropertyDetailPage({ params }: PageProps) {
       month: 'long',
       day: 'numeric'
     })
+  }
+
+  if (loading) {
+    return <div className="pt-28 pb-16 text-center">Loading...</div>;
+  }
+
+  if (notFound || !property) {
+    return <PageNotFound message="Property not found" />;
   }
 
   return (
@@ -80,10 +98,10 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             <div>
               <h2 className="font-poppins text-xl font-semibold mb-4">Property Details</h2>
               <p className="text-muted-foreground">{property.description}</p>
-              {property.additionalInfo && (
+              {property.additional_info && (
                 <div className="mt-4">
                   <h3 className="font-medium mb-2">Additional Information</h3>
-                  <p className="text-muted-foreground">{property.additionalInfo}</p>
+                  <p className="text-muted-foreground">{property.additional_info}</p>
                 </div>
               )}
             </div>
@@ -96,9 +114,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
               floors={property.floors}
               kitchens={property.kitchens}
               area={property.area}
-              areaUnit={property.areaUnit}
-              propertyType={property.propertyType}
-              hasLawn={property.hasLawn}
+              areaUnit={property.area_unit}
+              propertyType={property.property_type}
+              hasLawn={property.has_lawn}
             />
             
             <Separator />
@@ -122,26 +140,26 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 <div className="flex items-center mb-3">
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mr-3">
                     <span className="text-xl font-semibold text-muted-foreground">
-                      {property.sellerName.charAt(0)}
+                      {property.seller_name?.charAt(0)}
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium">{property.sellerName}</p>
+                    <p className="font-medium">{property.seller_name}</p>
                     <p className="text-sm text-muted-foreground">Property Owner</p>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{property.sellerPhone}</span>
+                    <span>{property.seller_phone}</span>
                   </div>
                   <div className="flex items-center">
                     <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{property.sellerName.toLowerCase().replace(' ', '.')}@example.com</span>
+                    <span>{property.seller_name?.toLowerCase().replace(' ', '.')}@example.com</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>Listed on {formatDate(property.listedDate)}</span>
+                    <span>Listed on {formatDate(property.listed_date)}</span>
                   </div>
                 </div>
               </div>
@@ -156,12 +174,4 @@ export default async function PropertyDetailPage({ params }: PageProps) {
       </div>
     </div>
   )
-}
-
-export async function generateStaticParams() {
-  // Import or access your property data here
-  // If propertyData is not available here, import it from "@/lib/data/properties"
-  return propertyData.map((property) => ({
-    id: property.id,
-  }));
 }

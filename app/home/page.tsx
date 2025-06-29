@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -7,12 +10,72 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
 import PropertyCard from "@/components/property/property-card"
 import { Search, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
-import { propertyData } from "@/lib/data/properties"
+import { PropertyService } from "@/lib/database/properties"
+import type { PropertyRow } from "@/lib/database/properties"
 
 export default function HomePage() {
+  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  // Filters & pagination state
+  const [location, setLocation] = useState("")
+  const [propertyType, setPropertyType] = useState("")
+  const [areaUnit, setAreaUnit] = useState("")
+  const [priceRange, setPriceRange] = useState("")
+  const [sort, setSort] = useState("newest")
+  const [page, setPage] = useState(1)
+  const pageSize = 8
+
+  // Parse price range
+  const getPriceBounds = () => {
+    if (!priceRange) return {}
+    if (priceRange === "200001+") return { min_price: 200001 }
+    const [min, max] = priceRange.split("-").map(Number)
+    return { min_price: min, max_price: max }
+  }
+
+  // Fetch properties using PropertyService.getFilteredProperties
+  const fetchProperties = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const filters: any = {
+        search_term: location || undefined,
+        property_type_filter: propertyType || undefined,
+        // areaUnit can be added if needed
+        ...getPriceBounds(),
+        // Add more filters as needed
+      }
+      const { data, error, total } = await PropertyService.getFilteredProperties({
+        filters,
+        sort: sort as any,
+        page,
+        pageSize,
+      })
+      if (error) throw error
+      setProperties(data || [])
+      setTotal(total)
+    } catch (err) {
+      setError("Failed to load properties.")
+      setProperties([])
+      setTotal(0)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProperties()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, propertyType, areaUnit, priceRange, sort, page])
+
+  // Pagination logic
+  const totalPages = Math.ceil(total / pageSize)
+
   return (
     <div className="pt-28 pb-16">
       <div className="container mx-auto px-4">
@@ -35,10 +98,12 @@ export default function HomePage() {
                 type="text" 
                 placeholder="Location" 
                 className="pl-10" 
+                value={location}
+                onChange={e => setLocation(e.target.value)}
               />
             </div>
             <div>
-              <Select>
+              <Select value={propertyType} onValueChange={setPropertyType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Property Type" />
                 </SelectTrigger>
@@ -51,7 +116,7 @@ export default function HomePage() {
               </Select>
             </div>
             <div>
-              <Select>
+              <Select value={areaUnit} onValueChange={setAreaUnit}>
                 <SelectTrigger>
                   <SelectValue placeholder="Size (Marla)" />
                 </SelectTrigger>
@@ -66,7 +131,7 @@ export default function HomePage() {
             </div>
             <div className="col-span-1 md:col-span-2">
               <div className="flex flex-col">
-                <Select>
+                <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="mb-1">
                     <SelectValue placeholder="Select Price Range" />
                   </SelectTrigger>
@@ -86,7 +151,11 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-4 flex justify-center">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto">
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto"
+              onClick={() => { setPage(1); fetchProperties() }}
+              disabled={loading}
+            >
               <Search className="mr-2 h-4 w-4" /> Search Properties
             </Button>
           </div>
@@ -97,7 +166,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-8">
             <h2 className="font-poppins text-2xl font-bold">Available Properties</h2>
             <div className="flex gap-2">
-              <Select defaultValue="newest">
+              <Select value={sort} onValueChange={v => setSort(v as string)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
@@ -111,27 +180,52 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
-            {propertyData.map((property) => (
-              <PropertyCard 
-                key={property.id}
-                property={property}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-12">Loading properties...</div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-12">{error}</div>
+          ) : properties.length === 0 ? (
+            <div className="text-center py-12">No properties found.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+              {properties.map((property: PropertyRow) => (
+                <PropertyCard 
+                  key={property.id}
+                  property={property}
+                />
+              ))}
+            </div>
+          )}
           
           {/* Pagination */}
           <div className="mt-12 flex justify-center">
             <nav className="flex items-center gap-1">
-              <Button variant="outline" size="icon" disabled>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1 || loading}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">1</Button>
-              <Button variant="outline" size="sm">2</Button>
-              <Button variant="outline" size="sm">3</Button>
-              <Button variant="outline" size="sm">4</Button>
-              <Button variant="outline" size="sm">5</Button>
-              <Button variant="outline" size="icon">
+              {[...Array(totalPages)].map((_, idx) => (
+                <Button
+                  key={idx + 1}
+                  variant="outline"
+                  size="sm"
+                  className={page === idx + 1 ? "bg-primary text-primary-foreground" : ""}
+                  onClick={() => setPage(idx + 1)}
+                  disabled={loading}
+                >
+                  {idx + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages || loading}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </nav>

@@ -8,10 +8,9 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Bed, Home, Phone, MapPin, ArrowUpRight, ChefHat, Trees } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Property } from "@/lib/data/properties"
-
+import type { PropertyRow } from "@/lib/database/properties"
 interface PropertyCardProps {
-  property: Property;
+  property: PropertyRow;
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
@@ -38,6 +37,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
+  console.log(property)
   return (
     <Link href={`/property/${property.id}`}>
       <Card 
@@ -91,7 +91,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           {/* Property Type */}
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="bg-black/60 text-white border-none">
-              {property.propertyType}
+              {property.property_type}
             </Badge>
           </div>
           
@@ -127,7 +127,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 <ChefHat className="h-4 w-4 mr-1 text-muted-foreground" />
                 <span className="text-sm">{property.kitchens}</span>
               </div>
-              {property.hasLawn && (
+              {property.has_lawn && (
                 <div className="flex items-center">
                   <Trees className="h-4 w-4 mr-1 text-emerald-600" />
                 </div>
@@ -136,7 +136,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </div>
           
           <div className="mt-3 text-sm">
-            <span className="font-medium">{property.area} {property.areaUnit}</span>
+            <span className="font-medium">{property.area} {property.area_unit}</span>
           </div>
         </CardContent>
         
@@ -147,7 +147,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             </p>
             <div className="flex items-center text-muted-foreground text-xs mt-1">
               <Phone className="h-3 w-3 mr-1" />
-              {property.sellerPhone}
+              {property.seller_phone}
             </div>
           </div>
           <Button 
