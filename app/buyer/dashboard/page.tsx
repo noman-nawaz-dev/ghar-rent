@@ -222,7 +222,8 @@ export default function BuyerDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="rentals">
+          {/* TODO: Fetch properties from database */}
+          {/* <TabsContent value="rentals">
             <Card>
               <CardHeader>
                 <CardTitle>My Rentals</CardTitle>
@@ -236,7 +237,7 @@ export default function BuyerDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="requests">
             <Card>
