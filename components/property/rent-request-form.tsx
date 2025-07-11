@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useAuth } from "@/hooks/useAuth"
+import { RentalRequestRow, RentalRequestService } from "@/lib/database/rental-requests"
 
 const formSchema = z.object({
   price: z.string().min(1, {
@@ -41,7 +42,7 @@ type FormValues = z.infer<typeof formSchema>
 export default function RentRequestForm({ propertyId }: { propertyId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, currentUser } = useAuth();
 
   // Create form
   const form = useForm<FormValues>({
@@ -53,32 +54,54 @@ export default function RentRequestForm({ propertyId }: { propertyId: string }) 
     },
   })
 
-  // Form submission handler
-  const onSubmit = (values: FormValues) => {
-    if (!isLoggedIn) {
+  const onSubmit = async (values: FormValues) => {
+    if (!isLoggedIn || !currentUser?.id) {
       toast({
-        title: "Login first",
-        description: "Kindly login to send rental request.",
+        title: "Login Required",
+        description: "Please login to send a rental request.",
         variant: "destructive",
-      })
+      });
       return;
     }
 
-    setIsSubmitting(true)
+    const rentalRequest = {
+      property_id: propertyId,
+      buyer_id: currentUser.id,
+      proposed_price: Number(values.price),
+      duration: Number(values.duration),
+      message: values.message?.trim() || null,
+    };
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Rent request submitted:", { propertyId, ...values })
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await RentalRequestService.createRentalRequest(rentalRequest as RentalRequestRow);
+
+      if (error) {
+        throw new Error(error.message || "Failed to send rental request.");
+      }
 
       toast({
-        title: "Request Submitted",
-        description: "Your rental request has been sent to the property owner.",
-      })
+        title: "Request Sent",
+        description: "Your rental request has been successfully sent to the property owner.",
+        variant: "default",
+      });
 
-      setIsSubmitting(false)
-      form.reset()
-    }, 1500)
-  }
+      form.reset();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      console.error("Rental request error:", err);
+      toast({
+        title: "Request Failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   return (
     <div>
