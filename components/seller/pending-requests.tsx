@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,8 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Check, X } from "lucide-react"
+import { Check, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import { RentalRequestService, RentalRequestWithDetails } from "@/lib/database/rental-requests"
 
 type RequestStatus = "pending" | "approved" | "rejected"
 
@@ -35,70 +37,66 @@ interface RentalRequest {
   requestDate: string
   status: RequestStatus
   message?: string
+  buyerEmail?: string
+  buyerPhone?: string | null
 }
 
-const mockRequests: RentalRequest[] = [
-  {
-    id: "req-001",
-    propertyName: "Modern Family Home in Bahria Town",
-    renterName: "Ahmed Khan",
-    renterInitials: "AK",
-    proposedPrice: 70000,
-    duration: 12,
-    requestDate: "2023-08-15",
-    status: "pending",
-    message: "I'm interested in renting this property for my family of 4. We're looking for a long-term arrangement and can move in by the end of the month."
-  },
-  {
-    id: "req-002",
-    propertyName: "Cozy 2-Bedroom in DHA",
-    renterName: "Fatima Malik",
-    renterInitials: "FM",
-    proposedPrice: 42000,
-    duration: 6,
-    requestDate: "2023-08-14",
-    status: "pending",
-    message: "I would like to rent this property for 6 months. I'm a working professional and need a quiet place close to my office."
-  },
-  {
-    id: "req-003",
-    propertyName: "Luxury Apartment in Clifton",
-    renterName: "Usman Sheikh",
-    renterInitials: "US",
-    proposedPrice: 115000,
-    duration: 24,
-    requestDate: "2023-08-12",
-    status: "pending"
-  },
-  {
-    id: "req-004",
-    propertyName: "Spacious Villa in Gulberg",
-    renterName: "Zara Ahmed",
-    renterInitials: "ZA",
-    proposedPrice: 140000,
-    duration: 12,
-    requestDate: "2023-08-10",
-    status: "pending",
-    message: "Looking for a family home in this area. We are a family of 6 with no pets."
-  },
-  {
-    id: "req-005",
-    propertyName: "Modern Apartment in Johar Town",
-    renterName: "Bilal Hassan",
-    renterInitials: "BH",
-    proposedPrice: 55000,
-    duration: 6,
-    requestDate: "2023-08-08",
-    status: "pending"
-  }
-]
-
 export function PendingRequestsTable() {
-  const [requests, setRequests] = useState<RentalRequest[]>(mockRequests)
+  const [requests, setRequests] = useState<RentalRequest[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null)
   const { toast } = useToast()
+  const { currentUser } = useAuth()
+
+  useEffect(() => {
+    const fetchRentalRequests = async () => {
+      if (!currentUser?.id) return
+      
+      setLoading(true)
+      try {
+        const { data, error } = await RentalRequestService.getRentalRequestsBySellerId(currentUser.id)
+        
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch rental requests",
+            variant: "destructive"
+          })
+          return
+        }
+
+        if (data) {
+          const transformedRequests: RentalRequest[] = data.map((request: RentalRequestWithDetails) => ({
+            id: request.id,
+            propertyName: request.property_title,
+            renterName: request.buyer_name,
+            renterInitials: request.buyer_name.split(' ').map(n => n[0]).join('').toUpperCase(),
+            proposedPrice: request.proposed_price,
+            duration: request.duration,
+            requestDate: request.created_at,
+            status: request.status as RequestStatus,
+            message: request.message || undefined,
+            buyerEmail: request.buyer_email,
+            buyerPhone: request.buyer_phone
+          }))
+          
+          setRequests(transformedRequests)
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch rental requests",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRentalRequests()
+  }, [currentUser?.id, toast])
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -114,29 +112,66 @@ export function PendingRequestsTable() {
     setDialogOpen(true)
   }
   
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!selectedRequest || !actionType) return
     
-    // Update the request status
-    const updatedRequests = requests.map(req => {
-      if (req.id === selectedRequest.id) {
-        return { ...req, status: actionType === "approve" ? "approved" : "rejected" as RequestStatus }
+    try {
+      const status = actionType === "approve" ? "approved" : "rejected"
+      const { error } = await RentalRequestService.updateRentalRequestStatus(selectedRequest.id, status)
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update request status",
+          variant: "destructive"
+        })
+        return
       }
-      return req
-    })
-    
-    setRequests(updatedRequests)
-    setDialogOpen(false)
-    
-    // Show toast notification
-    toast({
-      title: actionType === "approve" ? "Request Approved" : "Request Rejected",
-      description: `You have ${actionType === "approve" ? "approved" : "rejected"} the rental request from ${selectedRequest.renterName}.`,
-    })
+      
+      // Update the request status locally
+      const updatedRequests = requests.map(req => {
+        if (req.id === selectedRequest.id) {
+          return { ...req, status: status as RequestStatus }
+        }
+        return req
+      })
+      
+      setRequests(updatedRequests)
+      setDialogOpen(false)
+      
+      // Show toast notification
+      toast({
+        title: actionType === "approve" ? "Request Approved" : "Request Rejected",
+        description: `You have ${actionType === "approve" ? "approved" : "rejected"} the rental request from ${selectedRequest.renterName}.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update request status",
+        variant: "destructive"
+      })
+    }
   }
   
   const formatPrice = (price: number) => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading rental requests...</span>
+      </div>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No rental requests found.</p>
+      </div>
+    )
   }
 
   return (
@@ -272,8 +307,12 @@ export function PendingRequestsTable() {
               
               <div>
                 <h4 className="font-medium">Contact Information</h4>
-                <p className="text-muted-foreground">Email: {selectedRequest.renterName.toLowerCase().replace(' ', '.') + '@example.com'}</p>
-                <p className="text-muted-foreground">Phone: +92 300 1234567</p>
+                {selectedRequest.buyerEmail && (
+                  <p className="text-muted-foreground">Email: {selectedRequest.buyerEmail}</p>
+                )}
+                {selectedRequest.buyerPhone && (
+                  <p className="text-muted-foreground">Phone: {selectedRequest.buyerPhone}</p>
+                )}
               </div>
             </div>
           )}
