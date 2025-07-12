@@ -4,10 +4,10 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Slider } from "@/components/ui/slider"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
   SelectContent,
@@ -28,7 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Calculator, Sparkles } from "lucide-react"
+import { Calculator, Sparkles, TrendingUp, MapPin, Home, AlertCircle, CheckCircle } from "lucide-react"
 
 const formSchema = z.object({
   propertyType: z.string().min(1, { message: "Please select property type" }),
@@ -46,9 +46,31 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+interface PriceAnalysis {
+  basePrice: number
+  adjustments: Array<{
+    factor: string
+    impact: string
+    reasoning: string
+  }>
+  marketInsights: string
+}
+
+interface PriceSuggestionResult {
+  price: number
+  priceRange?: {
+    min: number
+    max: number
+  }
+  analysis?: PriceAnalysis
+  recommendations?: string[]
+  error?: string
+  success?: boolean
+}
+
 export default function PriceSuggestionPage() {
   const [isCalculating, setIsCalculating] = useState(false)
-  const [suggestedPrice, setSuggestedPrice] = useState<number | null>(null)
+  const [result, setResult] = useState<PriceSuggestionResult | null>(null)
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -67,94 +89,50 @@ export default function PriceSuggestionPage() {
     },
   })
   
-  function calculateSuggestedPrice(data: FormValues) {
-    // This is a simplistic algorithm for demo purposes
-    // A real implementation would use a more sophisticated model
-    
-    // Base price by city (per Marla)
-    const cityBasePrices: Record<string, number> = {
-      'Lahore': 10000,
-      'Karachi': 12000,
-      'Islamabad': 15000,
-      'Rawalpindi': 9000,
-      'Faisalabad': 7000,
-      'Multan': 6000,
-      'Peshawar': 8000,
-      'Quetta': 7500,
-      'Other': 5000,
-    }
-    
-    // Property type multipliers
-    const propertyTypeMultipliers: Record<string, number> = {
-      'House': 1.0,
-      'Apartment': 0.9,
-      'Villa': 1.4,
-      'Portion': 0.7,
-    }
-    
-    // Area calculation
-    let areaValue = parseFloat(data.area)
-    if (data.areaUnit === 'Kanal') {
-      // 1 Kanal = 20 Marla
-      areaValue = areaValue * 20
-    }
-    
-    // Start with base price based on city and area
-    let basePrice = (cityBasePrices[data.city] || cityBasePrices['Other']) * areaValue
-    
-    // Apply property type multiplier
-    basePrice = basePrice * (propertyTypeMultipliers[data.propertyType] || 1.0)
-    
-    // Add for bedrooms
-    const bedroomPrice = parseInt(data.bedrooms) * 5000
-    
-    // Add for floors
-    const floorPrice = parseInt(data.floors) * 2000
-    
-    // Add for kitchens
-    const kitchenPrice = parseInt(data.kitchens) * 1000
-    
-    // Add for lawn
-    const lawnPrice = data.hasLawn ? 3000 : 0
-    
-    // Furnished status
-    const furnishingMultiplier = data.furnishingStatus === 'furnished' ? 1.2 : 1.0
-    
-    // Calculate total
-    let totalPrice = (basePrice + bedroomPrice + floorPrice + kitchenPrice + lawnPrice) * furnishingMultiplier
-    
-    // Add slight randomness for realism
-    const randomFactor = 0.95 + (Math.random() * 0.1) // between 0.95 and 1.05
-    totalPrice = totalPrice * randomFactor
-    
-    // Round to nearest 1000
-    return Math.round(totalPrice / 1000) * 1000
-  }
-  
-  function onSubmit(data: FormValues) {
+  async function onSubmit(data: FormValues) {
     setIsCalculating(true)
-    
-    // Simulate API call or calculation time
-    setTimeout(() => {
-      const price = calculateSuggestedPrice(data)
-      setSuggestedPrice(price)
+    setResult(null)
+
+    try {
+      const res = await fetch("/api/price-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      
+      const suggestionResult = await res.json()
+      setResult(suggestionResult)
+    } catch (error) {
+      setResult({
+        price: 0,
+        error: "Failed to get price suggestion. Please try again.",
+        success: false
+      })
+    } finally {
       setIsCalculating(false)
-    }, 2000)
+    }
   }
   
   const formatPrice = (price: number) => {
-    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  }
+
+  const getPropertySummary = () => {
+    const values = form.getValues()
+    if (!values.propertyType || !values.area || !values.city) return null
+    
+    return `${values.propertyType} • ${values.area} ${values.areaUnit} • ${values.bedrooms} Bed • ${values.city}`
   }
 
   return (
     <div className="pt-28 pb-16">
-      <div className="container mx-auto px-4 max-w-5xl">
+      <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <h1 className="font-poppins text-3xl md:text-4xl font-bold mb-4">
-            AI Rental Price Suggestion
+            AI Rental Price Analyzer
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Get an accurate estimate of how much your property could rent for based on its features and location
+            Get comprehensive market analysis and accurate rental price suggestions powered by advanced AI
           </p>
         </div>
         
@@ -162,9 +140,12 @@ export default function PriceSuggestionPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Property Details</CardTitle>
+                <CardTitle className="flex items-center">
+                  <Home className="h-5 w-5 mr-2" />
+                  Property Details
+                </CardTitle>
                 <CardDescription>
-                  Fill in the details about your property to get an accurate price suggestion
+                  Provide detailed information about your property for accurate market analysis
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -189,6 +170,8 @@ export default function PriceSuggestionPage() {
                                 <SelectItem value="Apartment">Apartment</SelectItem>
                                 <SelectItem value="Villa">Villa</SelectItem>
                                 <SelectItem value="Portion">Portion</SelectItem>
+                                <SelectItem value="Flat">Flat</SelectItem>
+                                <SelectItem value="Studio">Studio</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -227,6 +210,8 @@ export default function PriceSuggestionPage() {
                                 <SelectContent>
                                   <SelectItem value="Marla">Marla</SelectItem>
                                   <SelectItem value="Kanal">Kanal</SelectItem>
+                                  <SelectItem value="Sq Ft">Square Feet</SelectItem>
+                                  <SelectItem value="Sq Yard">Square Yard</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -328,9 +313,9 @@ export default function PriceSuggestionPage() {
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>Has Lawn</FormLabel>
+                              <FormLabel>Has Lawn/Garden</FormLabel>
                               <FormDescription>
-                                Check if the property has a lawn or garden
+                                Property includes outdoor green space
                               </FormDescription>
                             </div>
                             <FormMessage />
@@ -360,6 +345,8 @@ export default function PriceSuggestionPage() {
                                 <SelectItem value="Multan">Multan</SelectItem>
                                 <SelectItem value="Peshawar">Peshawar</SelectItem>
                                 <SelectItem value="Quetta">Quetta</SelectItem>
+                                <SelectItem value="Sialkot">Sialkot</SelectItem>
+                                <SelectItem value="Gujranwala">Gujranwala</SelectItem>
                                 <SelectItem value="Other">Other</SelectItem>
                               </SelectContent>
                             </Select>
@@ -376,10 +363,10 @@ export default function PriceSuggestionPage() {
                           <FormItem>
                             <FormLabel>Address / Society</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. DHA Phase 5, Bahria Town" {...field} />
+                              <Input placeholder="e.g. DHA Phase 5, Bahria Town, Gulberg" {...field} />
                             </FormControl>
                             <FormDescription>
-                              Enter housing society, area name, or address
+                              Housing society, area name, or specific location
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -400,7 +387,7 @@ export default function PriceSuggestionPage() {
                             <RadioGroup
                               onValueChange={field.onChange}
                               defaultValue={field.value}
-                              className="flex space-x-4"
+                              className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0"
                             >
                               <FormItem className="flex items-center space-x-2 space-y-0">
                                 <FormControl>
@@ -408,6 +395,14 @@ export default function PriceSuggestionPage() {
                                 </FormControl>
                                 <FormLabel className="font-normal cursor-pointer">
                                   Furnished
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="semi-furnished" />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">
+                                  Semi-Furnished
                                 </FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-2 space-y-0">
@@ -431,16 +426,17 @@ export default function PriceSuggestionPage() {
                       name="additionalInfo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Additional Details (Optional)</FormLabel>
+                          <FormLabel>Additional Features & Details</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="Add any other relevant details about your property..."
+                              placeholder="e.g. Swimming pool, gym, security, parking, rooftop, basement, AC, generator, etc."
                               className="resize-none"
+                              rows={3}
                               {...field}
                             />
                           </FormControl>
                           <FormDescription>
-                            Include details like amenities, condition, nearby facilities, etc.
+                            Include amenities, condition, nearby facilities, unique features
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -449,7 +445,7 @@ export default function PriceSuggestionPage() {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                       disabled={isCalculating}
                     >
                       {isCalculating ? (
@@ -458,12 +454,12 @@ export default function PriceSuggestionPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Calculating...
+                          Analyzing Market Data...
                         </span>
                       ) : (
                         <span className="flex items-center">
-                          <Calculator className="mr-2 h-5 w-5" />
-                          Get Price Suggestion
+                          <Sparkles className="mr-2 h-5 w-5" />
+                          Get AI Market Analysis
                         </span>
                       )}
                     </Button>
@@ -477,38 +473,118 @@ export default function PriceSuggestionPage() {
             <Card className="sticky top-28">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Sparkles className="h-5 w-5 text-emerald-600 mr-2" />
-                  AI Price Suggestion
+                  <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
+                  Market Analysis
                 </CardTitle>
                 <CardDescription>
-                  Our AI will analyze your property details to suggest an optimal rental price
+                  AI-powered rental price analysis and market insights
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {suggestedPrice ? (
-                  <div className="text-center py-6">
-                    <div className="text-4xl font-bold text-emerald-600 mb-2">
-                      PKR {formatPrice(suggestedPrice)}
-                    </div>
-                    <p className="text-muted-foreground">Suggested monthly rent</p>
+                {result && result.success && result.price ? (
+                  <div className="space-y-6">
+                    {/* Property Summary */}
+                    {getPropertySummary() && (
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <div className="flex items-center text-sm text-muted-foreground mb-2">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          Property Summary
+                        </div>
+                        <p className="font-medium">{getPropertySummary()}</p>
+                      </div>
+                    )}
                     
-                    <div className="mt-8 space-y-4 text-left">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Price Range:</strong> This suggested price is based on current market trends and similar properties in your area. Consider a range between PKR {formatPrice(Math.round(suggestedPrice * 0.9))} and PKR {formatPrice(Math.round(suggestedPrice * 1.1))}.
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Note:</strong> This is an AI-generated suggestion and should be used as a guideline only. Market conditions, property condition, and specific features may affect the actual rental value.
-                      </p>
+                    {/* Main Price */}
+                    <div className="text-center py-4">
+                      <div className="text-4xl font-bold text-emerald-600 mb-2">
+                        PKR {formatPrice(result.price)}
+                      </div>
+                      <p className="text-muted-foreground">Suggested monthly rent</p>
+                      
+                      {result.priceRange && (
+                        <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
+                          <p className="text-sm font-medium text-emerald-800">
+                            Price Range: PKR {formatPrice(result.priceRange.min)} - PKR {formatPrice(result.priceRange.max)}
+                          </p>
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Market Insights */}
+                    {result.analysis?.marketInsights && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm">Market Insights</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {result.analysis.marketInsights}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Price Adjustments */}
+                    {result.analysis?.adjustments && result.analysis.adjustments.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm">Price Factors</h4>
+                        <div className="space-y-2">
+                          {result.analysis.adjustments.map((adjustment, index) => (
+                            <div key={index} className="flex items-start space-x-2 text-sm">
+                              <Badge variant="secondary" className="text-xs">
+                                {adjustment.impact}
+                              </Badge>
+                              <div>
+                                <p className="font-medium">{adjustment.factor}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {adjustment.reasoning}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Recommendations */}
+                    {result.recommendations && result.recommendations.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm">Recommendations</h4>
+                        <div className="space-y-2">
+                          {result.recommendations.map((rec, index) => (
+                            <div key={index} className="flex items-start space-x-2 text-sm">
+                              <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                              <p className="text-muted-foreground">{rec}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Disclaimer */}
+                    <div className="mt-6 p-4 bg-amber-50 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-amber-800">
+                          <p className="font-medium mb-1">Important Note</p>
+                          <p>This AI analysis is based on current market data and property features. Final rental prices may vary based on specific conditions, negotiations, and market fluctuations.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : result && result.error ? (
+                  <div className="text-center py-12">
+                    <Alert className="text-left">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {result.error}
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 ) : (
                   <div className="text-center py-12">
                     <div className="bg-muted rounded-full w-16 h-16 mx-auto flex items-center justify-center mb-4">
                       <Calculator className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <p className="text-lg font-medium mb-2">No price suggestion yet</p>
+                    <p className="text-lg font-medium mb-2">Ready for Analysis</p>
                     <p className="text-muted-foreground text-sm">
-                      Fill in your property details and click the button to get an AI-powered price suggestion
+                      Complete the property details form to get comprehensive market analysis and price suggestions
                     </p>
                   </div>
                 )}
