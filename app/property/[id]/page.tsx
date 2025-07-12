@@ -12,12 +12,14 @@ import { ArrowLeft, MapPin, Calendar, Phone, Mail } from "lucide-react"
 import { PropertyService, PropertyRow } from "@/lib/database/properties"
 import RentRequestForm from "@/components/property/rent-request-form"
 import PageNotFound from "@/components/ui/page-not-found"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [property, setProperty] = useState<PropertyRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     async function fetchProperty() {
@@ -163,11 +165,12 @@ export default function PropertyDetailPage() {
                   </div>
                 </div>
               </div>
-              
-              <Separator className="my-4" />
-              
-              {/* Request to Rent Form */}
-              <RentRequestForm propertyId={property.id} />
+              {currentUser?.role !== 'seller' && (
+                <>
+                  <Separator className="my-4" />
+                  <RentRequestForm propertyId={property.id} />
+                </>
+              )}
             </div>
           </div>
         </div>
