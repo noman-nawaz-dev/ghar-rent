@@ -222,7 +222,7 @@ export default function BuyerDashboard() {
             </div>
           </TabsContent>
 
-          {/* TODO: Fetch properties from database */}
+          {/* TODO: Fetch properties from database and show them */}
           {/* <TabsContent value="rentals">
             <Card>
               <CardHeader>
