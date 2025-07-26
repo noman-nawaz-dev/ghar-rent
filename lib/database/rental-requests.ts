@@ -1,23 +1,24 @@
 import { Database } from "@/types/supabase";
 import { supabase } from "../supabase.client";
+import { PostgrestError } from "@supabase/supabase-js";
 
 type RentalRequest = Database['public']['Tables']['rental_requests']['Insert'];
 export type RentalRequestRow = Database['public']['Tables']['rental_requests']['Row']
 
 export type RentalRequestWithDetails = {
-  id: string
-  property_id: string
-  buyer_id: string
-  proposed_price: number
-  duration: number
-  message: string | null
-  status: 'pending' | 'approved' | 'rejected'
-  created_at: string
-  updated_at: string
-  buyer_name: string
-  buyer_email: string
-  buyer_phone: string | null
-  property_title: string
+    id: string
+    property_id: string
+    buyer_id: string
+    proposed_price: number
+    duration: number
+    message: string | null
+    status: 'pending' | 'approved' | 'rejected'
+    created_at: string
+    updated_at: string
+    buyer_name: string
+    buyer_email: string
+    buyer_phone: string | null
+    property_title: string
 }
 
 export class RentalRequestService {
@@ -78,17 +79,55 @@ export class RentalRequestService {
         try {
             const { data, error } = await supabase
                 .from('rental_requests')
-                .update({ 
-                    status, 
-                    updated_at: new Date().toISOString() 
+                .update({
+                    status,
+                    updated_at: new Date().toISOString()
                 })
                 .eq('id', requestId)
                 .select()
                 .single();
-            
+
             return { data, error };
         } catch (error) {
             return { data: null, error };
+        }
+    }
+
+    static async getRentalRequestByUserAndProperty(userId: string, propertyId: string): Promise<{ data: RentalRequestRow | null; error: PostgrestError | unknown | null }> {
+        try {
+            const { data, error } = await supabase
+                .from("rental_requests")
+                .select("*")
+                .eq("buyer_id", userId)
+                .eq("property_id", propertyId)
+                .single();
+            return { data, error };
+        } catch (error) {
+            return { data: null, error };
+        }
+    }
+
+    static async updateRentalRequest(id: string, payload: Partial<RentalRequestRow>): Promise<{ data: RentalRequestRow | null; error: PostgrestError | unknown | null }> {
+        try {
+            const { data, error } = await supabase
+                .from("rental_requests")
+                .update(payload)
+                .eq("id", id);
+            return { data, error };
+        } catch (error) {
+            return { data: null, error };
+        }
+    }
+
+    static async deleteRentalRequest(id: string): Promise<{ error: PostgrestError | unknown | null }> {
+        try {
+            const { error } = await supabase
+                .from("rental_requests")
+                .delete()
+                .eq("id", id);
+            return { error };
+        } catch (error) {
+            return { error };
         }
     }
 }

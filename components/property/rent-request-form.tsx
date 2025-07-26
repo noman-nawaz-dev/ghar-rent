@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Dispatch, SetStateAction, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -39,7 +39,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-export default function RentRequestForm({ propertyId }: { propertyId: string }) {
+interface PropTypes {
+  propertyId: string,
+  price: number,
+  setExistingRentalRequest: Dispatch<SetStateAction<RentalRequestRow | null>>
+}
+
+export default function RentRequestForm({ propertyId, price, setExistingRentalRequest }: PropTypes) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   const { isLoggedIn, currentUser } = useAuth();
@@ -75,12 +81,12 @@ export default function RentRequestForm({ propertyId }: { propertyId: string }) 
     setIsSubmitting(true);
 
     try {
-      const { error } = await RentalRequestService.createRentalRequest(rentalRequest as RentalRequestRow);
+      const { data, error } = await RentalRequestService.createRentalRequest(rentalRequest as RentalRequestRow);
 
       if (error) {
         throw new Error(error.message || "Failed to send rental request.");
       }
-
+      setExistingRentalRequest(data);
       toast({
         title: "Request Sent",
         description: "Your rental request has been successfully sent to the property owner.",
@@ -121,7 +127,7 @@ export default function RentRequestForm({ propertyId }: { propertyId: string }) 
                     <Input
                       type="number"
                       className="pl-12"
-                      placeholder="50,000"
+                      placeholder={`${price + 10000}`}
                       {...field}
                     />
                   </div>
