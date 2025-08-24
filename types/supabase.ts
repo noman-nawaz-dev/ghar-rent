@@ -66,6 +66,7 @@ export interface Database {
           listed_date: string
           status: 'Available' | 'Pending' | 'Rented'
           property_type: string
+          coordinates: { latitude: number; longitude: number } | null
           created_at: string
           updated_at: string
         }
@@ -90,6 +91,7 @@ export interface Database {
           listed_date?: string
           status?: 'Available' | 'Pending' | 'Rented'
           property_type: string
+          coordinates?: { latitude: number; longitude: number } | null
           created_at?: string
           updated_at?: string
         }
@@ -114,6 +116,7 @@ export interface Database {
           listed_date?: string
           status?: 'Available' | 'Pending' | 'Rented'
           property_type?: string
+          coordinates?: { latitude: number; longitude: number } | null
           created_at?: string
           updated_at?: string
         }
