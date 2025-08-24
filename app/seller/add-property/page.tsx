@@ -24,6 +24,7 @@ import { PropertyService } from "@/lib/database/properties";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { AddressAutoComplete } from "@/components/ui/address-autocomplete";
 
 const propertyTypes = ["House", "Apartment", "Villa", "Penthouse"];
 const areaUnits = ["Marla", "Kanal"];
@@ -43,6 +44,10 @@ const formSchema = z.object({
   additionalInfo: z.string().optional(),
   address: z.string().min(3, "Address is required"),
   city: z.enum(["Islamabad", "Lahore", "Karachi"]),
+  coordinates: z.object({
+    latitude: z.number(),
+    longitude: z.number()
+  }).optional(),
   images: z.array(z.string()).optional(),
   sellerPhone: z.string().min(6, "Phone is required"),
   sellerName: z.string().min(2, "Name is required"),
@@ -74,6 +79,7 @@ export default function AddPropertyPage() {
       additionalInfo: "",
       address: "",
       city: "Islamabad",
+      coordinates: undefined,
       images: [],
       sellerPhone: "",
       sellerName: "",
@@ -154,6 +160,7 @@ export default function AddPropertyPage() {
         additional_info: values.additionalInfo || null,
         address: values.address,
         city: values.city,
+        coordinates: values.coordinates || null,
         images: uploadedImages,
         seller_id: currentUser.id,
         seller_phone: values.sellerPhone,
@@ -493,10 +500,16 @@ export default function AddPropertyPage() {
                       <FormItem>
                         <FormLabel className="text-sm font-medium text-foreground">Full Address</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="e.g. House #123, Street 5, Block C, DHA Phase 2" 
+                          <AddressAutoComplete
+                            value={field.value}
+                            onChange={(address, coordinates) => {
+                              field.onChange(address);
+                              if (coordinates) {
+                                form.setValue('coordinates', coordinates);
+                              }
+                            }}
+                            placeholder="e.g. House #123, Street 5, Block C, DHA Phase 2"
                             className="h-12 border-input focus:border-emerald-500 focus:ring-emerald-500"
-                            {...field} 
                           />
                         </FormControl>
                         <FormMessage />

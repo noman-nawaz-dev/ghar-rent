@@ -32,6 +32,7 @@ export class PropertyService {
           listed_date: property.listed_date || new Date().toISOString().split('T')[0],
           status: property.status || 'Available',
           property_type: property.property_type,
+          coordinates: property.coordinates || null,
         })
         .select()
         .single();
@@ -206,7 +207,7 @@ export class PropertyService {
       let query = supabase
         .from('properties')
         .select('*', { count: 'exact' })
-        .eq('status', 'Available');
+        .in('status', ['Available', 'Pending']);
 
       if (filters?.city_filter) {
         query = query.ilike('city', `%${filters.city_filter}%`);
