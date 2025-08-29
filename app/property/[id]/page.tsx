@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast";
 import { PostgrestError } from "@supabase/supabase-js";
+import { PropertyMap } from "@/components/property/property-map";
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -237,9 +238,21 @@ export default function PropertyDetailPage() {
             {/* Location Information */}
             <div>
               <h2 className="font-poppins text-xl font-semibold mb-4">Location</h2>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Interactive map would be displayed here</p>
-              </div>
+              {property.coordinates && property.coordinates.latitude && property.coordinates.longitude ? (
+                <PropertyMap
+                  coordinates={property.coordinates}
+                  address={`${property.address}, ${property.city}`}
+                  propertyTitle={property.title}
+                  price={property.price}
+                />
+              ) : (
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border border-border">
+                  <div className="text-center">
+                    <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">Location coordinates not available</p>
+                  </div>
+                </div>
+              )}
               <p className="mt-3 text-muted-foreground">{property.address}, {property.city}</p>
             </div>
           </div>
