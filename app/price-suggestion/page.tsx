@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { AddressAutoComplete } from "@/components/ui/address-autocomplete"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -40,6 +41,10 @@ const formSchema = z.object({
   hasLawn: z.boolean(),
   city: z.string().min(1, { message: "City is required" }),
   address: z.string().min(3, { message: "Address must be at least 3 characters" }),
+  coordinates: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+  }).optional(),
   furnishingStatus: z.string().min(1, { message: "Please select furnishing status" }),
   additionalInfo: z.string().optional(),
 })
@@ -84,6 +89,7 @@ export default function PriceSuggestionPage() {
       hasLawn: false,
       city: "",
       address: "",
+      coordinates: undefined,
       furnishingStatus: "unfurnished",
       additionalInfo: "",
     },
@@ -363,7 +369,23 @@ export default function PriceSuggestionPage() {
                           <FormItem>
                             <FormLabel>Address / Society</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g. DHA Phase 5, Bahria Town, Gulberg" {...field} />
+                              <AddressAutoComplete
+                                value={field.value}
+                                onChange={(address, coordinates) => {
+                                  field.onChange(address);
+                                  if (coordinates) {
+                                    form.setValue('coordinates', coordinates);
+                                  }
+                                }}
+                                placeholder="e.g. DHA Phase 5, Bahria Town, Gulberg"
+                                error={!!form.formState.errors.address}
+                                inputHeight="40px"
+                                inputStyle={{
+                                  height: "40px",
+                                  fontSize: "14px",
+                                  lineHeight: "1.5"
+                                }}
+                              />
                             </FormControl>
                             <FormDescription>
                               Housing society, area name, or specific location

@@ -509,7 +509,12 @@ export default function AddPropertyPage() {
                               }
                             }}
                             placeholder="e.g. House #123, Street 5, Block C, DHA Phase 2"
-                            className="h-12 border-input focus:border-emerald-500 focus:ring-emerald-500"
+                            inputHeight="48px"
+                            inputStyle={{
+                              height: "48px",
+                              fontSize: "14px",
+                              lineHeight: "1.5"
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

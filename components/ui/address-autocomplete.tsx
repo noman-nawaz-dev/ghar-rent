@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GeoapifyGeocoderAutocomplete, GeoapifyContext, GeoapifyApiKey } from '@geoapify/react-geocoder-autocomplete';
 import '@geoapify/geocoder-autocomplete/styles/minimal.css';
 import { cn } from '@/lib/utils';
+import { useTheme } from 'next-themes';
 
 interface AddressAutoCompleteProps {
   value?: string;
@@ -12,6 +13,8 @@ interface AddressAutoCompleteProps {
   className?: string;
   disabled?: boolean;
   error?: boolean;
+  inputHeight?: string;
+  inputStyle?: React.CSSProperties;
 }
 
 export const AddressAutoComplete: React.FC<AddressAutoCompleteProps> = ({
@@ -21,9 +24,12 @@ export const AddressAutoComplete: React.FC<AddressAutoCompleteProps> = ({
   className,
   disabled = false,
   error = false,
+  inputHeight = "48px",
+  inputStyle,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | undefined>();
+  const { theme } = useTheme();
 
 
   useEffect(() => {
@@ -84,7 +90,7 @@ export const AddressAutoComplete: React.FC<AddressAutoCompleteProps> = ({
       {/* Custom styling to match your design system */}
       <style jsx global>{`
         .geoapify-autocomplete-input {
-          height: 48px !important;
+          height: ${inputHeight} !important;
           width: 100% !important;
           border-radius: 6px !important;
           border: 1px solid hsl(var(--input)) !important;
@@ -95,6 +101,7 @@ export const AddressAutoComplete: React.FC<AddressAutoCompleteProps> = ({
           color: hsl(var(--foreground)) !important;
           outline: none !important;
           box-shadow: none !important;
+          ${inputStyle ? Object.entries(inputStyle).map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value} !important;`).join(' ') : ''}
         }
         
         .geoapify-autocomplete-input:focus {
@@ -108,36 +115,55 @@ export const AddressAutoComplete: React.FC<AddressAutoCompleteProps> = ({
           opacity: 1 !important;
         }
         
-        .geoapify-suggestion {
-          padding: 8px 12px !important;
-          border-bottom: 1px solid hsl(var(--border)) !important;
-          cursor: pointer !important;
-          transition: background-color 0.2s !important;
+        /* Dropdown items container */
+        .geoapify-autocomplete-items {
+          position: absolute !important;
+          top: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+          background: ${theme === 'dark' ? 'hsl(var(--card))' : 'hsl(var(--popover))'} !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 6px !important;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+          z-index: 50 !important;
+          margin-top: 2px !important;
         }
         
-        .geoapify-suggestion:hover {
+        /* Individual dropdown items */
+        .geoapify-autocomplete-item {
+          padding: 8px 12px !important;
+          cursor: pointer !important;
+          border-bottom: 1px solid hsl(var(--border)) !important;
+          transition: background-color 0.2s ease !important;
+        }
+        
+        .geoapify-autocomplete-item:last-child {
+          border-bottom: none !important;
+        }
+        
+        .geoapify-autocomplete-item:hover {
           background-color: hsl(var(--accent)) !important;
         }
         
-        .geoapify-suggestion__main {
-          font-weight: 500 !important;
-          color: hsl(var(--foreground)) !important;
+        .geoapify-autocomplete-item.selected {
+          background-color: hsl(var(--accent)) !important;
         }
         
-        .geoapify-suggestion__secondary {
-          font-size: 12px !important;
-          color: hsl(var(--muted-foreground)) !important;
+        /* Address text styling */
+        .geoapify-autocomplete-item .address {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 2px !important;
         }
         
-        .geoapify-suggestions-list {
-          background: hsl(var(--background)) !important;
-          border: 1px solid hsl(var(--border)) !important;
-          border-radius: 6px !important;
-          box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
-          max-height: 200px !important;
-          overflow-y: auto !important;
-          z-index: 1000 !important;
+        .geoapify-autocomplete-item .main-part {
+          color: ${theme === 'dark' ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))'} !important;
         }
+        
+        .geoapify-autocomplete-item .secondary-part {
+          color: ${theme === 'dark' ? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))'} !important;
+        }
+        
       `}</style>
     </div>
   );
