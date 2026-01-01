@@ -1,47 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users } from "lucide-react"
-import PropertyCard from "@/components/property/property-card"
-import { BuyerDashboardService, RentalRequestRow } from "@/lib/database/buyer-dashboard"
+import { RentalRequestService, RentalRequestRow } from "@/lib/database/rental-requests"
 import { useAuth } from "@/hooks/useAuth"
-
-// Mock data for statistics
-const statistics = [
-  {
-    title: "Active Rentals",
-    value: 2,
-    icon: <Home className="h-5 w-5 text-emerald-600" />,
-    change: "+1 this month",
-    trend: "up"
-  },
-  {
-    title: "Pending Requests",
-    value: 1,
-    icon: <Clock className="h-5 w-5 text-amber-600" />,
-    change: "1 new",
-    trend: "neutral"
-  },
-  {
-    title: "Total Spent",
-    value: "PKR 180,000",
-    icon: <DollarSign className="h-5 w-5 text-emerald-600" />,
-    change: "+PKR 60,000 this month",
-    trend: "up"
-  },
-  {
-    title: "Properties Viewed",
-    value: 12,
-    icon: <Building className="h-5 w-5 text-blue-600" />,
-    change: "+3 this week",
-    trend: "up"
-  }
-]
+import { useToast } from "@/hooks/use-toast"
 
 // Mock data for rentals
 const rentedProperties = [
@@ -95,29 +61,131 @@ const rentedProperties = [
 
 export default function BuyerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
-  const [rentalRequests, setRentalRequests] = useState<RentalRequestRow[] | null>(null)
+  const [rentalRequests, setRentalRequests] = useState<(RentalRequestRow & { property_title?: string })[] | null>(null)
   const [loading, setLoading] = useState(false)
   const { currentUser } = useAuth()
+  const { toast } = useToast()
+
+  const fetchRentalRequests = useCallback(async (showToast = false) => {
+    if (!currentUser?.id) return;
+    
+    const isInitialLoad = !rentalRequests;
+    if (isInitialLoad) {
+      setLoading(true)
+    }
+    
+    try {
+      const { data, error } = await RentalRequestService.getRentalRequestsByBuyerId(currentUser.id)
+      
+      if (error) {
+        console.error('Error fetching rental requests:', error)
+        if (showToast) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch rental requests. Please try again.",
+            variant: "destructive"
+          })
+        }
+        setRentalRequests([])
+      } else {
+        setRentalRequests(data || [])
+        if (showToast) {
+          toast({
+            title: "Success",
+            description: "Rental requests updated successfully.",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      if (showToast) {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred.",
+          variant: "destructive"
+        })
+      }
+      setRentalRequests([])
+    } finally {
+      setLoading(false)
+    }
+  }, [currentUser?.id, rentalRequests, toast])
 
   useEffect(() => {
-    const fetchRentalRequests = async () => {
-      if (!currentUser?.id) return;
-      setLoading(true)
-      try {
-        const { data, error } = await BuyerDashboardService.getRentalRequestsByBuyerId(currentUser.id)
-        if (error) {
-          setRentalRequests([])
-        } else {
-          setRentalRequests(data)
-        }
-      } catch (error) {
-        setRentalRequests([])
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchRentalRequests()
   }, [currentUser?.id])
+
+  // Calculate dynamic statistics from rental requests
+  const statistics = useMemo(() => {
+    if (!rentalRequests) {
+      return [
+        {
+          title: "Approved Requests",
+          value: 0,
+          icon: <CheckCircle className="h-5 w-5 text-emerald-600" />,
+          change: "Loading...",
+          trend: "neutral" as const
+        },
+        {
+          title: "Pending Requests",
+          value: 0,
+          icon: <Clock className="h-5 w-5 text-amber-600" />,
+          change: "Loading...",
+          trend: "neutral" as const
+        },
+        {
+          title: "Total Requests",
+          value: 0,
+          icon: <Building className="h-5 w-5 text-blue-600" />,
+          change: "Loading...",
+          trend: "neutral" as const
+        },
+        {
+          title: "Rejected Requests",
+          value: 0,
+          icon: <XCircle className="h-5 w-5 text-red-600" />,
+          change: "Loading...",
+          trend: "neutral" as const
+        }
+      ];
+    }
+
+    const approved = rentalRequests.filter(r => r.status === 'approved').length;
+    const pending = rentalRequests.filter(r => r.status === 'pending').length;
+    const rejected = rentalRequests.filter(r => r.status === 'rejected').length;
+    const total = rentalRequests.length;
+
+    return [
+      {
+        title: "Approved Requests",
+        value: approved,
+        icon: <CheckCircle className="h-5 w-5 text-emerald-600" />,
+        change: approved > 0 ? `${approved} ${approved === 1 ? 'property' : 'properties'}` : "No approvals yet",
+        trend: approved > 0 ? "up" as const : "neutral" as const
+      },
+      {
+        title: "Pending Requests",
+        value: pending,
+        icon: <Clock className="h-5 w-5 text-amber-600" />,
+        change: pending > 0 ? "Awaiting response" : "No pending",
+        trend: "neutral" as const
+      },
+      {
+        title: "Total Requests",
+        value: total,
+        icon: <Building className="h-5 w-5 text-blue-600" />,
+        change: total > 0 ? "All requests" : "No requests yet",
+        trend: total > 0 ? "up" as const : "neutral" as const
+      },
+      {
+        title: "Rejected Requests",
+        value: rejected,
+        icon: <XCircle className="h-5 w-5 text-red-600" />,
+        change: rejected > 0 ? `${rejected} ${rejected === 1 ? 'rejection' : 'rejections'}` : "No rejections",
+        trend: rejected > 0 ? "down" as const : "neutral" as const
+      }
+    ];
+  }, [rentalRequests]);
 
   return (
     <div className="pt-28 pb-16">
@@ -241,44 +309,70 @@ export default function BuyerDashboard() {
           <TabsContent value="requests">
             <Card>
               <CardHeader>
-                <CardTitle>Rental Requests</CardTitle>
-                <CardDescription>Track the status of your rental requests</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Rental Requests</CardTitle>
+                    <CardDescription>Track the status of your rental requests</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="py-8 text-center text-muted-foreground">Loading...</div>
+                  <div className="py-8 text-center text-muted-foreground">Loading rental requests...</div>
                 ) : !rentalRequests || rentalRequests.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">No rental requests found.</div>
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-lg font-medium mb-2">No rental requests yet</p>
+                    <p className="text-sm">Your rental requests will appear here once you submit them.</p>
+                  </div>
                 ) : (
                   <div className="rounded-md border overflow-x-auto">
                     <table className="min-w-full divide-y divide-border">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property Title</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Proposed Price</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Message</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Proposed Price</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Message</th>
                         </tr>
                       </thead>
                       <tbody className="bg-background divide-y divide-border">
                         {rentalRequests.map((req) => (
-                          <tr key={req.id}>
-                            <td className="px-4 py-2 font-medium">{req.property_title || req.property_id}</td>
-                            <td className="px-4 py-2">PKR {req.proposed_price.toLocaleString()}</td>
-                            <td className="px-4 py-2">{req.duration} months</td>
-                            <td className="px-4 py-2">{new Date(req.created_at).toLocaleDateString()}</td>
-                            <td className="px-4 py-2">
-                              <Badge className={
-                                req.status === "approved" ? "bg-emerald-600" :
-                                req.status === "rejected" ? "bg-red-600" :
-                                "bg-amber-600"
-                              }>
+                          <tr key={req.id} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-medium">{req.property_title || 'Property'}</div>
+                            </td>
+                            <td className="px-4 py-3 font-medium">PKR {req.proposed_price.toLocaleString()}</td>
+                            <td className="px-4 py-3">{req.duration} {req.duration === 1 ? 'month' : 'months'}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {new Date(req.created_at).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge 
+                                variant="outline"
+                                className={
+                                  req.status === "approved" 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400" 
+                                    : req.status === "rejected" 
+                                      ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400" 
+                                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400"
+                                }
+                              >
+                                {req.status === "approved" && <CheckCircle className="h-3 w-3 mr-1" />}
+                                {req.status === "rejected" && <XCircle className="h-3 w-3 mr-1" />}
+                                {req.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
                                 {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                               </Badge>
                             </td>
-                            <td className="px-4 py-2 text-sm text-muted-foreground">{req.message || "-"}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
+                              {req.message || <span className="text-muted-foreground/50">No message</span>}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

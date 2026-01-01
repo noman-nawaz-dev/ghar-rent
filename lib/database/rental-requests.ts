@@ -130,4 +130,40 @@ export class RentalRequestService {
             return { error };
         }
     }
+
+    static async getRentalRequestsByBuyerId(buyerId: string): Promise<{ data: (RentalRequestRow & { property_title?: string })[] | null; error: any }> {
+        try {
+            const { data, error } = await supabase
+                .from('rental_requests')
+                .select(`
+                    *,
+                    properties!rental_requests_property_id_fkey (
+                        title,
+                        price,
+                        city,
+                        address,
+                        property_type
+                    )
+                `)
+                .eq('buyer_id', buyerId)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                return { data: null, error };
+            }
+
+            const mappedData = data?.map((req: any) => ({
+                ...req,
+                property_title: req.properties?.title || '',
+                property_price: req.properties?.price || 0,
+                property_city: req.properties?.city || '',
+                property_address: req.properties?.address || '',
+                property_type: req.properties?.property_type || '',
+            })) || [];
+
+            return { data: mappedData, error: null };
+        } catch (error) {
+            return { data: null, error };
+        }
+    }
 }
