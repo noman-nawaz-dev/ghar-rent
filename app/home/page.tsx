@@ -11,7 +11,7 @@ import {
   SelectValue
 } from "@/components/ui/select"
 import PropertyCard from "@/components/property/property-card"
-import { Search, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, MapPin, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { PropertyService } from "@/lib/database/properties"
 import type { PropertyRow } from "@/lib/database/properties"
 
@@ -72,6 +72,15 @@ export default function HomePage() {
     fetchProperties()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, propertyType, areaUnit, priceRange, sort, page])
+
+  // Clear all filters
+  const clearFilters = () => {
+    setLocation("")
+    setPropertyType("")
+    setAreaUnit("")
+    setPriceRange("")
+    setPage(1)
+  }
 
   // Pagination logic
   const totalPages = Math.ceil(total / pageSize)
@@ -150,13 +159,14 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-end">
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto"
-              onClick={() => { setPage(1); fetchProperties() }}
+              variant="outline"
+              className="w-full md:w-auto"
+              onClick={clearFilters}
               disabled={loading}
             >
-              <Search className="mr-2 h-4 w-4" /> Search Properties
+              <X className="mr-2 h-4 w-4" /> Clear Filters
             </Button>
           </div>
         </div>
