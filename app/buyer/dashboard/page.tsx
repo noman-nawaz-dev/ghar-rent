@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users, Eye } from "lucide-react"
 import { RentalRequestService, RentalRequestRow } from "@/lib/database/rental-requests"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 
 // Mock data for rentals
 const rentedProperties = [
@@ -65,6 +67,7 @@ export default function BuyerDashboard() {
   const [loading, setLoading] = useState(false)
   const { currentUser } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchRentalRequests = useCallback(async (showToast = false) => {
     if (!currentUser?.id) return;
@@ -336,6 +339,7 @@ export default function BuyerDashboard() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Message</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-background divide-y divide-border">
@@ -372,6 +376,17 @@ export default function BuyerDashboard() {
                             </td>
                             <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                               {req.message || <span className="text-muted-foreground/50">No message</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(`/property/${req.property_id}`)}
+                                className="whitespace-nowrap"
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
                             </td>
                           </tr>
                         ))}
