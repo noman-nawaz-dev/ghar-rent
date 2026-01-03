@@ -7,64 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users, Eye } from "lucide-react"
 import { RentalRequestService, RentalRequestRow } from "@/lib/database/rental-requests"
+import { PropertyService, PropertyRow } from "@/lib/database/properties"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-
-// Mock data for rentals
-const rentedProperties = [
-  {
-    id: "prop-003",
-    title: "Cozy 2-Bedroom in DHA",
-    description: "Well-maintained 2-bedroom house perfect for small families or professionals. Conveniently located near markets, schools, and parks.",
-    price: 45000,
-    area: 5,
-    areaUnit: "Marla" as const,
-    bedrooms: 2,
-    floors: 1,
-    kitchens: 1,
-    hasLawn: false,
-    additionalInfo: "Nearby schools and parks",
-    address: "Phase 2, DHA",
-    city: "Islamabad",
-    images: [
-      "https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-    ],
-    sellerPhone: "+92 333 9876543",
-    sellerName: "Ali Raza",
-    listedDate: "2023-06-25",
-    status: "Rented" as const,
-    propertyType: "House"
-  },
-  {
-    id: "prop-004",
-    title: "Spacious Villa in Gulberg",
-    description: "Elegant villa with large reception areas, multiple bedrooms, and a beautiful garden. Ideal for large families or for entertaining guests.",
-    price: 150000,
-    area: 1,
-    areaUnit: "Kanal" as const,
-    bedrooms: 5,
-    floors: 2,
-    kitchens: 2,
-    hasLawn: true,
-    additionalInfo: "Servant quarter, two lounges, garage",
-    address: "Block C, Gulberg III",
-    city: "Lahore",
-    images: [
-      "https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-    ],
-    sellerPhone: "+92 300 8765432",
-    sellerName: "Malik Fahad",
-    listedDate: "2023-07-01",
-    status: "Rented" as const,
-    propertyType: "Villa"
-  }
-]
+import PropertyCard from "@/components/property/property-card"
 
 export default function BuyerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [rentalRequests, setRentalRequests] = useState<(RentalRequestRow & { property_title?: string })[] | null>(null)
+  const [approvedRentals, setApprovedRentals] = useState<PropertyRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [rentalsLoading, setRentalsLoading] = useState(false)
   const { currentUser } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -117,6 +71,49 @@ export default function BuyerDashboard() {
   useEffect(() => {
     fetchRentalRequests()
   }, [currentUser?.id])
+
+  // Fetch approved rentals (properties for approved rental requests)
+  const fetchApprovedRentals = useCallback(async () => {
+    if (!currentUser?.id) return;
+    
+    setRentalsLoading(true)
+    
+    try {
+      const { data: requests, error: requestsError } = await RentalRequestService.getRentalRequestsByBuyerId(currentUser.id)
+      
+      if (requestsError) {
+        console.error('Error fetching rental requests:', requestsError)
+        setApprovedRentals([])
+        return
+      }
+      
+      // Filter for approved requests
+      const approvedRequests = requests?.filter(req => req.status === 'approved') || []
+      
+      // Fetch full property details for each approved request
+      const propertyPromises = approvedRequests.map(req => 
+        PropertyService.getPropertyById(req.property_id)
+      )
+      
+      const propertyResults = await Promise.all(propertyPromises)
+      const properties = propertyResults
+        .map(result => result.data)
+        .filter((prop): prop is PropertyRow => prop !== null)
+      
+      setApprovedRentals(properties)
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      setApprovedRentals([])
+    } finally {
+      setRentalsLoading(false)
+    }
+  }, [currentUser?.id])
+
+  useEffect(() => {
+    if (activeTab === 'rentals') {
+      fetchApprovedRentals()
+    }
+  }, [activeTab, fetchApprovedRentals])
 
   // Calculate dynamic statistics from rental requests
   const statistics = useMemo(() => {
@@ -292,22 +289,31 @@ export default function BuyerDashboard() {
             </div>
           </TabsContent>
 
-          {/* TODO: Fetch properties from database and show them */}
-          {/* <TabsContent value="rentals">
+          <TabsContent value="rentals">
             <Card>
               <CardHeader>
                 <CardTitle>My Rentals</CardTitle>
-                <CardDescription>Properties you are currently renting</CardDescription>
+                <CardDescription>Properties with approved rental requests</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {rentedProperties.map((property) => (
-                    <PropertyCard key={property.id} property={property} />
-                  ))}
-                </div>
+                {rentalsLoading ? (
+                  <div className="py-8 text-center text-muted-foreground">Loading your rentals...</div>
+                ) : approvedRentals.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Home className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-lg font-medium mb-2">No approved rentals yet</p>
+                    <p className="text-sm">Your approved rental requests will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {approvedRentals.map((property) => (
+                      <PropertyCard key={property.id} property={property} />
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent> */}
+          </TabsContent>
 
           <TabsContent value="requests">
             <Card>
