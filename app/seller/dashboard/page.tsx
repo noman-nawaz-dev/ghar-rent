@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,13 +16,82 @@ import {
   XCircle,
   DollarSign,
   Home,
+  Loader2,
 } from "lucide-react"
 import { propertyData } from "@/lib/data/properties"
 import { PendingRequestsTable } from "@/components/seller/pending-requests"
 import { ListedPropertiesTable } from "@/components/seller/listed-properties"
+import { useAuth } from "@/hooks/useAuth"
+import { RentalRequestService, RentalRequestWithDetails } from "@/lib/database/rental-requests"
+import { useToast } from "@/hooks/use-toast"
+
+interface PendingRequest {
+  id: string
+  renterName: string
+  renterInitials: string
+  propertyName: string
+  proposedPrice: number
+  duration: number
+}
 
 export default function SellerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
+  const [loadingRequests, setLoadingRequests] = useState(true)
+  const { currentUser } = useAuth()
+  const { toast } = useToast()
+
+  // Fetch pending rental requests
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      if (!currentUser?.id) {
+        setLoadingRequests(false)
+        return
+      }
+      
+      setLoadingRequests(true)
+      try {
+        const { data, error } = await RentalRequestService.getRentalRequestsBySellerId(currentUser.id)
+        
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch rental requests",
+            variant: "destructive"
+          })
+          setLoadingRequests(false)
+          return
+        }
+
+        if (data) {
+          // Filter only pending requests and take the first 3
+          const pending = data
+            .filter((request: RentalRequestWithDetails) => request.status === 'pending')
+            .slice(0, 3)
+            .map((request: RentalRequestWithDetails) => ({
+              id: request.id,
+              renterName: request.buyer_name,
+              renterInitials: request.buyer_name.split(' ').map(n => n[0]).join('').toUpperCase(),
+              propertyName: request.property_title,
+              proposedPrice: request.proposed_price,
+              duration: request.duration
+            }))
+          
+          setPendingRequests(pending)
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch rental requests",
+          variant: "destructive"
+        })
+      } finally {
+        setLoadingRequests(false)
+      }
+    }
+
+    fetchPendingRequests()
+  }, [currentUser?.id, toast])
   
   const statistics = [
     {
@@ -41,9 +110,9 @@ export default function SellerDashboard() {
     },
     {
       title: "Pending Requests",
-      value: 3,
+      value: pendingRequests.length,
       icon: <Clock className="h-5 w-5 text-amber-600" />,
-      change: "2 new today",
+      change: pendingRequests.length > 0 ? `${pendingRequests.length} awaiting` : "No pending",
       trend: "neutral"
     },
     {
@@ -175,39 +244,50 @@ export default function SellerDashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  {[1, 2, 3].map((_, index) => (
-                    <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                      <div className="flex items-center space-x-4">
-                        <Avatar>
-                          <AvatarFallback>{["AK", "FM", "US"][index]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{["Ahmed Khan", "Fatima Malik", "Usman Sheikh"][index]}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Requesting: {["Modern Family Home", "Cozy 2-Bedroom", "Luxury Apartment"][index]}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="text-right hidden md:block">
-                          <p className="font-medium text-emerald-600">
-                            PKR {[70000, 42000, 115000][index].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {[12, 6, 24][index]} months
-                          </p>
-                        </div>
-                        <div className="flex space-x-1">
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950">
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950">
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                  {loadingRequests ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Loading requests...</span>
                     </div>
-                  ))}
+                  ) : pendingRequests.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No pending rental requests</p>
+                    </div>
+                  ) : (
+                    pendingRequests.map((request) => (
+                      <div key={request.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                        <div className="flex items-center space-x-4">
+                          <Avatar>
+                            <AvatarFallback>{request.renterInitials}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{request.renterName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Requesting: {request.propertyName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="text-right hidden md:block">
+                            <p className="font-medium text-emerald-600">
+                              PKR {request.proposedPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {request.duration} months
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setActiveTab("requests")}
+                            className="text-emerald-600 hover:text-emerald-700"
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
