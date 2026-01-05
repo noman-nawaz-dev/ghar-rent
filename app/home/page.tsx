@@ -145,6 +145,7 @@ export default function HomePage() {
                     <SelectValue placeholder="Select Price Range" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="0-19999">Below PKR 20,000</SelectItem>
                     <SelectItem value="20000-40000">PKR 20,000 - 40,000</SelectItem>
                     <SelectItem value="40001-80000">PKR 40,001 - 80,000</SelectItem>
                     <SelectItem value="80001-120000">PKR 80,001 - 120,000</SelectItem>
@@ -153,7 +154,7 @@ export default function HomePage() {
                   </SelectContent>
                 </Select>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>PKR 20,000</span>
+                  <span>Below PKR 20,000</span>
                   <span>PKR 200,000+</span>
                 </div>
               </div>
