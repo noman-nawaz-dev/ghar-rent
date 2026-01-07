@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -31,16 +31,23 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Edit, MoreVertical, Trash2, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { Property } from "@/lib/data/properties"
+import { PropertyRow, PropertyService } from "@/lib/database/properties"
 
 interface ListedPropertiesTableProps {
-  properties: Property[];
+  properties: PropertyRow[];
+  onPropertyDeleted?: () => void;
 }
 
-export function ListedPropertiesTable({ properties }: ListedPropertiesTableProps) {
-  const [listedProperties, setListedProperties] = useState<Property[]>(properties)
+export function ListedPropertiesTable({ properties, onPropertyDeleted }: ListedPropertiesTableProps) {
+  const [listedProperties, setListedProperties] = useState<PropertyRow[]>(properties)
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
+  
+  // Update local state when properties prop changes
+  useEffect(() => {
+    setListedProperties(properties)
+  }, [properties])
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -58,19 +65,47 @@ export function ListedPropertiesTable({ properties }: ListedPropertiesTableProps
     setPropertyToDelete(id)
   }
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (propertyToDelete) {
-      const updatedProperties = listedProperties.filter(
-        property => property.id !== propertyToDelete
-      )
-      
-      setListedProperties(updatedProperties)
-      setPropertyToDelete(null)
-      
-      toast({
-        title: "Property Deleted",
-        description: "The property has been successfully removed from your listings.",
-      })
+      setIsDeleting(true)
+      try {
+        const { error } = await PropertyService.deleteProperty(propertyToDelete)
+        
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete property. Please try again.",
+            variant: "destructive"
+          })
+          setIsDeleting(false)
+          return
+        }
+        
+        const updatedProperties = listedProperties.filter(
+          property => property.id !== propertyToDelete
+        )
+        
+        setListedProperties(updatedProperties)
+        setPropertyToDelete(null)
+        
+        toast({
+          title: "Property Deleted",
+          description: "The property has been successfully removed from your listings.",
+        })
+        
+        // Call the callback to refresh the properties list in parent
+        if (onPropertyDeleted) {
+          onPropertyDeleted()
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete property. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsDeleting(false)
+      }
     }
   }
   
@@ -105,8 +140,8 @@ export function ListedPropertiesTable({ properties }: ListedPropertiesTableProps
                   </div>
                 </TableCell>
                 <TableCell>PKR {formatPrice(property.price)}</TableCell>
-                <TableCell>{property.area} {property.areaUnit}</TableCell>
-                <TableCell>{formatDate(property.listedDate)}</TableCell>
+                <TableCell>{property.area} {property.area_unit}</TableCell>
+                <TableCell>{formatDate(property.listed_date)}</TableCell>
                 <TableCell>
                   <Badge
                     className={
@@ -164,12 +199,13 @@ export function ListedPropertiesTable({ properties }: ListedPropertiesTableProps
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelDelete} disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

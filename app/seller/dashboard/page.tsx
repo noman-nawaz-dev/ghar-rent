@@ -18,11 +18,11 @@ import {
   Home,
   Loader2,
 } from "lucide-react"
-import { propertyData } from "@/lib/data/properties"
 import { PendingRequestsTable } from "@/components/seller/pending-requests"
 import { ListedPropertiesTable } from "@/components/seller/listed-properties"
 import { useAuth } from "@/hooks/useAuth"
 import { RentalRequestService, RentalRequestWithDetails } from "@/lib/database/rental-requests"
+import { PropertyService, PropertyRow } from "@/lib/database/properties"
 import { useToast } from "@/hooks/use-toast"
 
 interface PendingRequest {
@@ -38,6 +38,8 @@ export default function SellerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
+  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [loadingProperties, setLoadingProperties] = useState(true)
   const { currentUser } = useAuth()
   const { toast } = useToast()
 
@@ -92,18 +94,57 @@ export default function SellerDashboard() {
 
     fetchPendingRequests()
   }, [currentUser?.id, toast])
+
+  // Fetch properties by seller
+  useEffect(() => {
+    fetchProperties()
+  }, [currentUser?.id, toast])
+
+  const fetchProperties = async () => {
+    if (!currentUser?.id) {
+      setLoadingProperties(false)
+      return
+    }
+    
+    setLoadingProperties(true)
+    try {
+      const { data, error } = await PropertyService.getPropertiesBySeller(currentUser.id)
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch properties",
+          variant: "destructive"
+        })
+        setLoadingProperties(false)
+        return
+      }
+
+      if (data) {
+        setProperties(data)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch properties",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingProperties(false)
+    }
+  }
   
   const statistics = [
     {
       title: "Properties Listed",
-      value: 6,
+      value: properties.length,
       icon: <Building className="h-5 w-5 text-emerald-600" />,
       change: "+2 this month",
       trend: "up"
     },
     {
       title: "Active Rentals",
-      value: 4,
+      value: properties.filter(p => p.status === 'Rented').length,
       icon: <Home className="h-5 w-5 text-emerald-600" />,
       change: "+1 this month",
       trend: "up"
@@ -300,7 +341,23 @@ export default function SellerDashboard() {
                 <CardDescription>Manage your listed properties</CardDescription>
               </CardHeader>
               <CardContent>
-                <ListedPropertiesTable properties={propertyData} />
+                {loadingProperties ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-muted-foreground">Loading properties...</span>
+                  </div>
+                ) : properties.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">You haven't listed any properties yet</p>
+                    <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                      <Link href="/seller/add-property">
+                        <Plus className="mr-2 h-4 w-4" /> Add Your First Property
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <ListedPropertiesTable properties={properties} onPropertyDeleted={fetchProperties} />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
