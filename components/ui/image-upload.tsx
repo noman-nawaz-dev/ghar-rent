@@ -11,6 +11,7 @@ interface ImageUploadProps {
   onImagesUploaded: (urls: string[]) => void;
   maxFiles?: number;
   className?: string;
+  initialImages?: string[];
 }
 
 interface UploadedImage {
@@ -22,10 +23,26 @@ interface UploadedImage {
   error?: string;
 }
 
-export function ImageUpload({ onImagesUploaded, maxFiles = 5, className }: ImageUploadProps) {
+export function ImageUpload({ onImagesUploaded, maxFiles = 5, className, initialImages = [] }: ImageUploadProps) {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const previousUrlsRef = useRef<string[]>([]);
+  const isInitializedRef = useRef(false);
+
+  // Initialize with existing images
+  useEffect(() => {
+    if (!isInitializedRef.current && initialImages.length > 0) {
+      const existingImages: UploadedImage[] = initialImages.map((url, index) => ({
+        id: `existing-${index}`,
+        file: new File([], 'existing-image'),
+        url: url,
+        status: 'success' as const,
+        progress: 100,
+      }));
+      setUploadedImages(existingImages);
+      isInitializedRef.current = true;
+    }
+  }, [initialImages]);
 
   // Call onImagesUploaded whenever uploadedImages changes
   useEffect(() => {
