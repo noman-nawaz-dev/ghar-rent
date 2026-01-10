@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users, Eye } from "lucide-react"
+import { Home, Clock, CheckCircle, XCircle, DollarSign, Building, Users, Eye, Loader2 } from "lucide-react"
 import { RentalRequestService, RentalRequestRow } from "@/lib/database/rental-requests"
 import { PropertyService, PropertyRow } from "@/lib/database/properties"
+import { ActivityService, ActivityRow } from "@/lib/database/activities"
+import { ACTIVITY_CONSTANTS } from "@/lib/constants"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -17,8 +19,10 @@ export default function BuyerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [rentalRequests, setRentalRequests] = useState<(RentalRequestRow & { property_title?: string })[] | null>(null)
   const [approvedRentals, setApprovedRentals] = useState<PropertyRow[]>([])
+  const [recentActivities, setRecentActivities] = useState<ActivityRow[]>([])
   const [loading, setLoading] = useState(false)
   const [rentalsLoading, setRentalsLoading] = useState(false)
+  const [loadingActivities, setLoadingActivities] = useState(true)
   const { currentUser } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -114,6 +118,38 @@ export default function BuyerDashboard() {
       fetchApprovedRentals()
     }
   }, [activeTab, fetchApprovedRentals])
+
+  // Fetch recent activities
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!currentUser?.id) {
+        setLoadingActivities(false)
+        return
+      }
+
+      setLoadingActivities(true)
+      try {
+        const { data, error } = await ActivityService.getRecentActivities(
+          currentUser.id, 
+          ACTIVITY_CONSTANTS.RECENT_ACTIVITIES_DISPLAY_COUNT
+        )
+        
+        if (error) {
+          console.error('Error fetching activities:', error)
+          setRecentActivities([])
+        } else {
+          setRecentActivities(data || [])
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching activities:', error)
+        setRecentActivities([])
+      } finally {
+        setLoadingActivities(false)
+      }
+    }
+
+    fetchActivities()
+  }, [currentUser?.id])
 
   // Calculate dynamic statistics from rental requests
   const statistics = useMemo(() => {
@@ -246,44 +282,44 @@ export default function BuyerDashboard() {
                   <CardDescription>Your latest actions on the platform</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {[1, 2, 3].map((_, index) => (
-                      <div key={index} className="flex items-start space-x-4">
-                        <div className="bg-muted rounded-full p-2 mt-1">
-                          {index === 0 ? (
-                            <CheckCircle className="h-4 w-4 text-emerald-600" />
-                          ) : index === 1 ? (
-                            <Clock className="h-4 w-4 text-amber-600" />
-                          ) : (
-                            <Home className="h-4 w-4 text-blue-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {index === 0 
-                              ? "Rental request approved" 
-                              : index === 1 
-                                ? "Rental request pending" 
-                                : "New property rented"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {index === 0 
-                              ? "Your request for Modern Family Home was approved" 
-                              : index === 1 
-                                ? "Waiting for approval on Luxury Apartment in Clifton" 
-                                : "You rented Spacious Villa in Gulberg"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {index === 0 
-                              ? "2 hours ago" 
-                              : index === 1 
-                                ? "Yesterday" 
-                                : "3 days ago"}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {loadingActivities ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Loading activities...</span>
+                    </div>
+                  ) : recentActivities.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No recent activity</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {recentActivities.map((activity) => {
+                        const iconColor = ActivityService.getActivityColor(activity.activity_type)
+                        const IconComponent = activity.activity_type.includes('approved') 
+                          ? CheckCircle 
+                          : activity.activity_type.includes('rejected')
+                          ? XCircle
+                          : activity.activity_type.includes('pending') || activity.activity_type.includes('created')
+                          ? Clock
+                          : Home
+                        
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-4">
+                            <div className="bg-muted rounded-full p-2 mt-1">
+                              <IconComponent className={`h-4 w-4 ${iconColor}`} />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.title}</p>
+                              <p className="text-sm text-muted-foreground">{activity.description}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {ActivityService.formatRelativeTime(activity.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
