@@ -1,5 +1,6 @@
 import { Database } from '@/types/supabase';
 import { supabase } from '../supabase.client';
+import { ActivityService } from '../database/activities';
 
 export type User = Database['public']['Tables']['users']['Row'];
 export type UserInsert = Database['public']['Tables']['users']['Insert'];
