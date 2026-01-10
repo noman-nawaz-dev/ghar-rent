@@ -1,6 +1,7 @@
 import { Database } from "@/types/supabase";
 import { supabase } from "../supabase.client";
 import { PostgrestError } from "@supabase/supabase-js";
+import { ActivityService } from "./activities";
 
 type RentalRequest = Database['public']['Tables']['rental_requests']['Insert'];
 export type RentalRequestRow = Database['public']['Tables']['rental_requests']['Row']
@@ -25,6 +26,40 @@ export class RentalRequestService {
     static async createRentalRequest(rentalRequest: RentalRequest): Promise<{ data: RentalRequestRow | null; error: any }> {
         try {
             const { data, error } = await supabase.from('rental_requests').insert(rentalRequest).select().single();
+            
+            // Log activity if request was created successfully
+            if (data && !error) {
+                // Get property details
+                const { data: property } = await supabase
+                    .from('properties')
+                    .select('title, seller_id')
+                    .eq('id', data.property_id)
+                    .single();
+
+                if (property) {
+                    // Log for buyer
+                    await ActivityService.logRentalRequestCreatedBuyer(
+                        data.buyer_id,
+                        data.id,
+                        data.property_id,
+                        property.title,
+                        data.proposed_price,
+                        data.duration
+                    ).catch(err => console.error('Failed to log buyer activity:', err));
+
+                    // Log for seller
+                    await ActivityService.logRentalRequestCreatedSeller(
+                        property.seller_id,
+                        data.id,
+                        data.property_id,
+                        property.title,
+                        data.buyer_id,
+                        data.proposed_price,
+                        data.duration
+                    ).catch(err => console.error('Failed to log seller activity:', err));
+                }
+            }
+
             return { data, error }
         } catch (error) {
             return { data: null, error }
@@ -87,6 +122,55 @@ export class RentalRequestService {
                 .select()
                 .single();
 
+            // Log activity if status was updated successfully
+            if (data && !error) {
+                // Get property details and buyer info
+                const { data: property } = await supabase
+                    .from('properties')
+                    .select('title, seller_id')
+                    .eq('id', data.property_id)
+                    .single();
+
+                if (property) {
+                    if (status === 'approved') {
+                        // Log approval for buyer
+                        await ActivityService.logRentalRequestApprovedBuyer(
+                            data.buyer_id,
+                            data.id,
+                            data.property_id,
+                            property.title,
+                            data.proposed_price
+                        ).catch(err => console.error('Failed to log buyer activity:', err));
+
+                        // Log approval for seller
+                        await ActivityService.logRentalRequestApprovedSeller(
+                            property.seller_id,
+                            data.id,
+                            data.property_id,
+                            property.title,
+                            data.buyer_id
+                        ).catch(err => console.error('Failed to log seller activity:', err));
+                    } else if (status === 'rejected') {
+                        // Log rejection for buyer
+                        await ActivityService.logRentalRequestRejectedBuyer(
+                            data.buyer_id,
+                            data.id,
+                            data.property_id,
+                            property.title
+                        ).catch(err => console.error('Failed to log buyer activity:', err));
+
+                        // Log rejection for seller
+                        await ActivityService.logRentalRequestRejectedSeller(
+                            property.seller_id,
+                            data.id,
+                            data.property_id,
+                            property.title,
+                            data.buyer_id
+                        ).catch(err => console.error('Failed to log seller activity:', err));
+                    }
+                }
+            }
+
             return { data, error };
         } catch (error) {
             return { data: null, error };
@@ -109,10 +193,43 @@ export class RentalRequestService {
 
     static async updateRentalRequest(id: string, payload: Partial<RentalRequestRow>): Promise<{ data: RentalRequestRow | null; error: PostgrestError | unknown | null }> {
         try {
+            // Get old rental request data before update
+            const { data: oldRequest } = await supabase
+                .from("rental_requests")
+                .select('*, properties!rental_requests_property_id_fkey (title)')
+                .eq("id", id)
+                .single();
+
             const { data, error } = await supabase
                 .from("rental_requests")
                 .update(payload)
-                .eq("id", id);
+                .eq("id", id)
+                .select()
+                .single();
+
+            // Log activity if request was updated successfully (but not status changes, they have their own logging)
+            if (data && !error && oldRequest && !payload.status) {
+                const property = (oldRequest as any).properties;
+                const propertyTitle = property?.title || 'Unknown Property';
+                
+                await ActivityService.createActivity({
+                    user_id: data.buyer_id,
+                    activity_type: 'rental_request_created', // Using created type for updates
+                    title: 'Rental request updated',
+                    description: `You updated your request for ${propertyTitle}`,
+                    metadata: {
+                        request_id: data.id,
+                        property_id: data.property_id,
+                        property_title: propertyTitle,
+                        proposed_price: data.proposed_price,
+                        duration: data.duration,
+                        updated: true,
+                    },
+                    related_entity_id: data.id,
+                    related_entity_type: 'rental_request',
+                }).catch(err => console.error('Failed to log activity:', err));
+            }
+
             return { data, error };
         } catch (error) {
             return { data: null, error };
@@ -121,10 +238,31 @@ export class RentalRequestService {
 
     static async deleteRentalRequest(id: string): Promise<{ error: PostgrestError | unknown | null }> {
         try {
+            // Get rental request data before deletion to log activity
+            const { data: request } = await supabase
+                .from("rental_requests")
+                .select('buyer_id, property_id, properties!rental_requests_property_id_fkey (title)')
+                .eq("id", id)
+                .single();
+
             const { error } = await supabase
                 .from("rental_requests")
                 .delete()
                 .eq("id", id);
+
+            // Log activity if request was deleted successfully
+            if (!error && request) {
+                const property = (request as any).properties;
+                const propertyTitle = property?.title || 'Unknown Property';
+                
+                await ActivityService.logRentalRequestCancelled(
+                    request.buyer_id,
+                    id,
+                    request.property_id,
+                    propertyTitle
+                ).catch(err => console.error('Failed to log activity:', err));
+            }
+
             return { error };
         } catch (error) {
             return { error };
