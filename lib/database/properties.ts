@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase.client';
 import { Database } from '@/types/supabase';
+import { ActivityService } from './activities';
 
 type Property = Database['public']['Tables']['properties']['Insert'];
 export type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -36,6 +37,17 @@ export class PropertyService {
         })
         .select()
         .single();
+
+      // Log activity if property was created successfully
+      if (data && !error) {
+        await ActivityService.logPropertyListed(
+          data.seller_id,
+          data.id,
+          data.title,
+          data.price,
+          data.city
+        ).catch(err => console.error('Failed to log activity:', err));
+      }
 
       return { data, error };
     } catch (error) {
@@ -98,12 +110,38 @@ export class PropertyService {
    */
   static async updateProperty(id: string, updates: Partial<Property>): Promise<{ data: PropertyRow | null; error: any }> {
     try {
+      // Get old property data to track changes
+      const { data: oldProperty } = await supabase
+        .from('properties')
+        .select('title, price, status, seller_id')
+        .eq('id', id)
+        .single();
+
       const { data, error } = await supabase
         .from('properties')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
+
+      // Log activity if property was updated successfully and changes were made
+      if (data && !error && oldProperty) {
+        const changes = {
+          title_changed: updates.title !== undefined && oldProperty.title !== updates.title,
+          price_changed: updates.price !== undefined && oldProperty.price !== updates.price,
+          status_changed: updates.status !== undefined && oldProperty.status !== updates.status,
+        };
+
+        // Only log if something significant changed
+        if (changes.title_changed || changes.price_changed || changes.status_changed) {
+          await ActivityService.logPropertyUpdated(
+            data.seller_id,
+            data.id,
+            data.title,
+            changes
+          ).catch(err => console.error('Failed to log activity:', err));
+        }
+      }
 
       return { data, error };
     } catch (error) {
@@ -116,10 +154,27 @@ export class PropertyService {
    */
   static async deleteProperty(id: string): Promise<{ error: any }> {
     try {
+      // Get property data before deletion to log activity
+      const { data: property } = await supabase
+        .from('properties')
+        .select('title, city, seller_id')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabase
         .from('properties')
         .delete()
         .eq('id', id);
+
+      // Log activity if property was deleted successfully
+      if (!error && property) {
+        await ActivityService.logPropertyDeleted(
+          property.seller_id,
+          id,
+          property.title,
+          property.city
+        ).catch(err => console.error('Failed to log activity:', err));
+      }
 
       return { error };
     } catch (error) {
