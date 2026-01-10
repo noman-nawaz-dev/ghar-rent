@@ -1,7 +1,7 @@
 # Database Schema Documentation
 
 ## Overview
-Complete database schema for the Ghar Rent rental platform with 3 main tables, RLS policies, and functions.
+Complete database schema for the Ghar Rent rental platform with 4 main tables, RLS policies, and functions.
 
 ## Tables
 
@@ -60,11 +60,27 @@ rental_requests (
 )
 ```
 
+### 4. Activities Table
+```sql
+activities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  activity_type activity_type not null,
+  title text not null,
+  description text not null,
+  metadata jsonb default '{}'::jsonb,
+  related_entity_id uuid,
+  related_entity_type text,
+  created_at timestamp with time zone default now()
+)
+```
+
 ## Enums
 - `user_role`: 'seller' | 'buyer' | 'admin'
 - `property_status`: 'Available' | 'Pending' | 'Rented'
 - `request_status`: 'pending' | 'approved' | 'rejected'
 - `area_unit`: 'Marla' | 'Kanal'
+- `activity_type`: 'property_listed' | 'property_updated' | 'property_deleted' | 'rental_request_created' | 'rental_request_approved' | 'rental_request_rejected' | 'rental_request_cancelled' | 'profile_updated'
 
 ## Key Features
 - Row Level Security (RLS) policies for data protection
@@ -87,7 +103,12 @@ rental_requests (
    - A property can have multiple rental requests
    - Foreign key: `rental_requests.property_id` references `properties.id`
 
-4. **users** → **price_suggestions** (1:N)
+4. **users** → **activities** (1:N)
+   - A user can have multiple activities
+   - Foreign key: `activities.user_id` references `users.id`
+   - Cascade delete: When a user is deleted, their activities are deleted
+
+5. **users** → **price_suggestions** (1:N)
    - A user can generate multiple price suggestions
    - Foreign key: `price_suggestions.user_id` references `users.id`
 

@@ -181,6 +181,50 @@ export interface Database {
           }
         ]
       }
+      activities: {
+        Row: {
+          id: string
+          user_id: string
+          activity_type: 'property_listed' | 'property_updated' | 'property_deleted' | 'rental_request_created' | 'rental_request_approved' | 'rental_request_rejected' | 'rental_request_cancelled' | 'profile_updated'
+          title: string
+          description: string
+          metadata: Json
+          related_entity_id: string | null
+          related_entity_type: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          activity_type: 'property_listed' | 'property_updated' | 'property_deleted' | 'rental_request_created' | 'rental_request_approved' | 'rental_request_rejected' | 'rental_request_cancelled' | 'profile_updated'
+          title: string
+          description: string
+          metadata?: Json
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          activity_type?: 'property_listed' | 'property_updated' | 'property_deleted' | 'rental_request_created' | 'rental_request_approved' | 'rental_request_rejected' | 'rental_request_cancelled' | 'profile_updated'
+          title?: string
+          description?: string
+          metadata?: Json
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {}
     Functions: {}
@@ -189,6 +233,7 @@ export interface Database {
       property_status: 'Available' | 'Pending' | 'Rented'
       request_status: 'pending' | 'approved' | 'rejected'
       area_unit: 'Marla' | 'Kanal'
+      activity_type: 'property_listed' | 'property_updated' | 'property_deleted' | 'rental_request_created' | 'rental_request_approved' | 'rental_request_rejected' | 'rental_request_cancelled' | 'profile_updated'
     }
     CompositeTypes: {}
   }
