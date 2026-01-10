@@ -115,6 +115,17 @@ export async function updateUserProfile(userId: string, updates: UserUpdate): Pr
       return null;
     }
 
+    // Log activity if profile was updated successfully
+    if (data) {
+      const changes = Object.keys(updates).filter(key => key !== 'updated_at');
+      if (changes.length > 0) {
+        await ActivityService.logProfileUpdated(
+          userId,
+          changes
+        ).catch(err => console.error('Failed to log activity:', err));
+      }
+    }
+
     return data;
   } catch (error) {
     console.error('Error in updateUserProfile:', error);
