@@ -150,6 +150,14 @@ export async function updateUserRole(userId: string, role: 'seller' | 'buyer' | 
       return null;
     }
 
+    // Log activity if role was updated successfully
+    if (data) {
+      await ActivityService.logProfileUpdated(
+        userId,
+        ['role']
+      ).catch(err => console.error('Failed to log activity:', err));
+    }
+
     return data;
   } catch (error) {
     console.error('Error in updateUserRole:', error);
