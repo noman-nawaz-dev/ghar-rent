@@ -13,6 +13,7 @@ users (
   email text unique not null,
   phone text,
   role user_role not null default 'buyer',
+  status user_status not null default 'active',
   created_at timestamp with time zone default now()
 )
 ```
@@ -77,6 +78,7 @@ activities (
 
 ## Enums
 - `user_role`: 'seller' | 'buyer' | 'admin'
+- `user_status`: 'active' | 'suspended'
 - `property_status`: 'Available' | 'Pending' | 'Rented'
 - `request_status`: 'pending' | 'approved' | 'rejected'
 - `area_unit`: 'Marla' | 'Kanal'
