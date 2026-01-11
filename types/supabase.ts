@@ -16,6 +16,7 @@ export interface Database {
           email: string
           phone: string | null
           role: 'seller' | 'buyer' | 'admin'
+          status: 'active' | 'suspended'
           created_at: string
         }
         Insert: {
@@ -24,6 +25,7 @@ export interface Database {
           email: string
           phone?: string | null
           role?: 'seller' | 'buyer' | 'admin'
+          status?: 'active' | 'suspended'
           created_at?: string
         }
         Update: {
@@ -32,6 +34,7 @@ export interface Database {
           email?: string
           phone?: string | null
           role?: 'seller' | 'buyer' | 'admin'
+          status?: 'active' | 'suspended'
           created_at?: string
         }
         Relationships: [
