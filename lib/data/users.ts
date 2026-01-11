@@ -309,4 +309,113 @@ export async function getUserStats() {
     console.error('Error in getUserStats:', error);
     return null;
   }
+}
+
+/**
+ * Get all users with property counts (for admin dashboard)
+ */
+export async function getAllUsersWithPropertyCounts(): Promise<any[]> {
+  try {
+    // First get all users
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      return [];
+    }
+
+    if (!users || users.length === 0) {
+      return [];
+    }
+
+    // Get property counts for sellers
+    const { data: propertyCounts, error: countsError } = await supabase
+      .from('properties')
+      .select('seller_id');
+
+    if (countsError) {
+      console.error('Error fetching property counts:', countsError);
+    }
+
+    // Create a map of seller_id to property count
+    const propertyCountMap = new Map<string, number>();
+    if (propertyCounts) {
+      propertyCounts.forEach((prop) => {
+        const count = propertyCountMap.get(prop.seller_id) || 0;
+        propertyCountMap.set(prop.seller_id, count + 1);
+      });
+    }
+
+    // Combine users with property counts
+    const usersWithCounts = users.map((user) => ({
+      ...user,
+      properties: user.role === 'seller' ? (propertyCountMap.get(user.id) || 0) : undefined,
+    }));
+
+    return usersWithCounts;
+  } catch (error) {
+    console.error('Error in getAllUsersWithPropertyCounts:', error);
+    return [];
+  }
+}
+
+/**
+ * Update user status (active/suspended)
+ */
+export async function updateUserStatus(
+  userId: string, 
+  status: 'active' | 'suspended'
+): Promise<User | null> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ status })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user status:', error);
+      return null;
+    }
+
+    // Log activity if status was updated successfully
+    if (data) {
+      await ActivityService.logProfileUpdated(
+        userId,
+        ['status']
+      ).catch(err => console.error('Failed to log activity:', err));
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in updateUserStatus:', error);
+    return null;
+  }
+}
+
+/**
+ * Get users by status
+ */
+export async function getUsersByStatus(status: 'active' | 'suspended'): Promise<User[]> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching users by status:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getUsersByStatus:', error);
+    return [];
+  }
 } 
