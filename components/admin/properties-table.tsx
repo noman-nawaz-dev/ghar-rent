@@ -89,39 +89,80 @@ export function AdminPropertiesTable() {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
   
-  const handleStatusChange = (propertyId: string, newStatus: "Available" | "Pending" | "Rented") => {
-    const updatedProperties = properties.map(property => {
-      if (property.id === propertyId) {
-        return { ...property, status: newStatus }
+  const handleStatusChange = async (propertyId: string, newStatus: "Available" | "Pending" | "Rented") => {
+    try {
+      const { data, error } = await PropertyService.updateProperty(propertyId, { status: newStatus })
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update property status. Please try again.",
+          variant: "destructive",
+        })
+        return
       }
-      return property
-    })
-    
-    setProperties(updatedProperties)
-    
-    toast({
-      title: "Property Status Updated",
-      description: `The property status has been updated to ${newStatus}.`,
-    })
+
+      // Update local state
+      const updatedProperties = properties.map(property => {
+        if (property.id === propertyId) {
+          return { ...property, status: newStatus }
+        }
+        return property
+      })
+      
+      setProperties(updatedProperties)
+      
+      toast({
+        title: "Property Status Updated",
+        description: `The property status has been updated to ${newStatus}.`,
+      })
+    } catch (error) {
+      console.error("Error updating property:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update property status. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
   
   const handleDeleteProperty = (id: string) => {
     setPropertyToDelete(id)
   }
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (propertyToDelete) {
-      const updatedProperties = properties.filter(
-        property => property.id !== propertyToDelete
-      )
-      
-      setProperties(updatedProperties)
-      setPropertyToDelete(null)
-      
-      toast({
-        title: "Property Deleted",
-        description: "The property has been successfully removed from the platform.",
-      })
+      try {
+        const { error } = await PropertyService.deleteProperty(propertyToDelete)
+        
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete property. Please try again.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        const updatedProperties = properties.filter(
+          property => property.id !== propertyToDelete
+        )
+        
+        setProperties(updatedProperties)
+        setPropertyToDelete(null)
+        
+        toast({
+          title: "Property Deleted",
+          description: "The property has been successfully removed from the platform.",
+        })
+      } catch (error) {
+        console.error("Error deleting property:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete property. Please try again.",
+          variant: "destructive",
+        })
+      }
     }
   }
   
