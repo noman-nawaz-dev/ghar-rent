@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -28,18 +28,54 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Eye, MoreVertical, CheckCircle, ShieldAlert, Trash2 } from "lucide-react"
+import { Eye, MoreVertical, CheckCircle, ShieldAlert, Trash2, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { propertyData } from "@/lib/data/properties"
+import { PropertyService, PropertyRow } from "@/lib/database/properties"
 
 export function AdminPropertiesTable() {
-  const [properties, setProperties] = useState(propertyData)
+  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null)
   const { toast } = useToast()
+
+  // Fetch properties from database
+  useEffect(() => {
+    fetchProperties()
+  }, [])
+
+  const fetchProperties = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await PropertyService.getAllProperties()
+      
+      if (error) {
+        console.error("Error fetching properties:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load properties. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (data) {
+        setProperties(data)
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load properties. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -96,6 +132,16 @@ export function AdminPropertiesTable() {
        property.city.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (statusFilter === "all" || property.status === statusFilter)
     )
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-center items-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
