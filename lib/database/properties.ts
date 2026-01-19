@@ -73,6 +73,22 @@ export class PropertyService {
   }
 
   /**
+   * Get all properties (for admin)
+   */
+  static async getAllProperties(): Promise<{ data: PropertyRow[] | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  /**
    * Get properties by seller ID
    */
   static async getPropertiesBySeller(sellerId: string): Promise<{ data: PropertyRow[] | null; error: any }> {
