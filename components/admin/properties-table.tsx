@@ -227,82 +227,90 @@ export function AdminPropertiesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProperties.map((property) => (
-              <TableRow key={property.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center">
-                    <div 
-                      className="w-10 h-10 rounded mr-3 bg-cover bg-center" 
-                      style={{ backgroundImage: `url(${property.images[0]})` }}
-                    />
-                    <span className="max-w-[150px] truncate">{property.title}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{property.sellerName}</TableCell>
-                <TableCell>PKR {formatPrice(property.price)}</TableCell>
-                <TableCell>{property.city}</TableCell>
-                <TableCell>{formatDate(property.listedDate)}</TableCell>
-                <TableCell>
-                  <Badge
-                    className={
-                      property.status === 'Available' ? 'bg-emerald-600' : 
-                      property.status === 'Pending' ? 'bg-amber-600' : 'bg-blue-600'
-                    }
-                  >
-                    {property.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast({ title: "View Property", description: "Viewing property details" })}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>View Property</span>
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuSeparator />
-                      
-                      {property.status !== "Available" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Available")}>
-                          <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
-                          <span className="text-emerald-600">Set as Available</span>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      {property.status !== "Pending" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Pending")}>
-                          <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
-                          <span className="text-amber-600">Set as Pending</span>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      {property.status !== "Rented" && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Rented")}>
-                          <CheckCircle className="mr-2 h-4 w-4 text-blue-600" />
-                          <span className="text-blue-600">Set as Rented</span>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      <DropdownMenuSeparator />
-                      
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteProperty(property.id)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete Property</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {filteredProperties.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  No properties found
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredProperties.map((property) => (
+                <TableRow key={property.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-10 h-10 rounded mr-3 bg-cover bg-center" 
+                        style={{ backgroundImage: `url(${property.images[0]})` }}
+                      />
+                      <span className="max-w-[150px] truncate">{property.title}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{property.seller_name}</TableCell>
+                  <TableCell>PKR {formatPrice(property.price)}</TableCell>
+                  <TableCell>{property.city}</TableCell>
+                  <TableCell>{formatDate(property.listed_date)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        property.status === 'Available' ? 'bg-emerald-600' : 
+                        property.status === 'Pending' ? 'bg-amber-600' : 'bg-blue-600'
+                      }
+                    >
+                      {property.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => toast({ title: "View Property", description: "Viewing property details" })}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>View Property</span>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuSeparator />
+                        
+                        {property.status !== "Available" && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Available")}>
+                            <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
+                            <span className="text-emerald-600">Set as Available</span>
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {property.status !== "Pending" && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Pending")}>
+                            <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
+                            <span className="text-amber-600">Set as Pending</span>
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {property.status !== "Rented" && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(property.id, "Rented")}>
+                            <CheckCircle className="mr-2 h-4 w-4 text-blue-600" />
+                            <span className="text-blue-600">Set as Rented</span>
+                          </DropdownMenuItem>
+                        )}
+                        
+                        <DropdownMenuSeparator />
+                        
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteProperty(property.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete Property</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
