@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase.client'
+import { verifyOAuthUser, createOAuthUserProfile } from '@/lib/database/auth'
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -25,51 +26,63 @@ function AuthCallbackContent() {
         setProcessed(true) // Prevent double processing
         const user = session.user
 
-        // Check if user profile exists
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('id, role')
-          .eq('id', user.id)
-          .single()
+        // Verify user profile and check suspended status
+        const verification = await verifyOAuthUser(user.id)
 
-        if (profileError && profileError.code !== 'PGRST116') { // PGRST116: 'exact one row' fails, which is fine if user is new
-          toast({ title: 'Error', description: 'Failed to check user profile.', variant: 'destructive' })
+        if (verification.error) {
+          toast({ title: 'Error', description: verification.error, variant: 'destructive' })
           router.push('/auth/login')
           return
         }
 
-        let userRole = profile?.role
+        // Check if user is suspended
+        if (verification.isSuspended) {
+          await supabase.auth.signOut()
+          toast({ 
+            title: 'Account Suspended', 
+            description: 'Your account has been suspended. Please contact support for assistance.', 
+            variant: 'destructive' 
+          })
+          router.push('/auth/login')
+          return
+        }
 
-        if (!profile) {
+        let userRole = verification.user?.role
+
+        // Handle new user registration
+        if (verification.isNewUser) {
           if (!user.email) {
             toast({ title: 'Registration Failed', description: 'Could not retrieve email from provider.', variant: 'destructive' })
             router.push('/auth/register')
             return
           }
-          // New user, create a profile
+
+          // Determine role from URL or default to buyer
           const roleFromUrl = searchParams.get('role')
           const role = (roleFromUrl === 'seller' || roleFromUrl === 'buyer') ? roleFromUrl : 'buyer'
 
-          const newUser = {
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata.full_name || user.user_metadata.name || 'New User',
-            phone: user.user_metadata.phone || null,
-            role: role as 'seller' | 'buyer'
-          }
+          const name = user.user_metadata.full_name || user.user_metadata.name || 'New User'
+          const phone = user.user_metadata.phone || null
 
-          const { error: insertError } = await supabase.from('users').insert(newUser)
+          const { user: newUser, error: createError } = await createOAuthUserProfile(
+            user.id,
+            user.email,
+            name,
+            role as 'seller' | 'buyer',
+            phone
+          )
 
-          if (insertError) {
-            toast({ title: 'Registration Failed', description: `Failed to create user profile: ${insertError.message}`, variant: 'destructive' })
+          if (createError || !newUser) {
+            toast({ title: 'Registration Failed', description: createError || 'Failed to create user profile', variant: 'destructive' })
             await supabase.auth.signOut() // Sign out if profile creation fails
             router.push('/auth/register')
             return
           }
+
           userRole = role
           toast({ title: 'Registration Successful', description: 'Your account has been created.' })
         } else {
-            toast({ title: 'Login Successful', description: `Welcome back!` })
+          toast({ title: 'Login Successful', description: `Welcome back!` })
         }
 
         // Redirect based on role
