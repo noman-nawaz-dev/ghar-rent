@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase.client"
 import { useAuth } from "@/hooks/useAuth"
+import { authenticateUser } from "@/lib/database/auth"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -58,15 +59,12 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    })
+    const result = await authenticateUser(values.email, values.password)
 
-    if (error) {
+    if (!result.success) {
       toast({
-        title: "Login Failed",
-        description: error.message,
+        title: result.error?.includes('suspended') ? "Account Suspended" : "Login Failed",
+        description: result.error || "An error occurred during login",
         variant: "destructive",
       })
       setIsLoading(false)
