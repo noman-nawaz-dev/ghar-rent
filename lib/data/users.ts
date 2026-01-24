@@ -418,4 +418,25 @@ export async function getUsersByStatus(status: 'active' | 'suspended'): Promise<
     console.error('Error in getUsersByStatus:', error);
     return [];
   }
+}
+
+/**
+ * Get total count of users
+ */
+export async function getTotalUsersCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.error('Error fetching total users count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Error in getTotalUsersCount:', error);
+    return 0;
+  }
 } 
