@@ -328,4 +328,19 @@ export class PropertyService {
       return { data: null, error, total: 0 };
     }
   }
+
+  /**
+   * Get total count of properties
+   */
+  static async getTotalPropertiesCount(): Promise<{ count: number; error: any }> {
+    try {
+      const { count, error } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true });
+
+      return { count: count || 0, error };
+    } catch (error) {
+      return { count: 0, error };
+    }
+  }
 } 
