@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
@@ -30,6 +30,8 @@ import { AdminUsersTable } from "@/components/admin/users-table"
 import { AdminPropertiesTable } from "@/components/admin/properties-table"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PropertyService } from "@/lib/database/properties"
+import { getTotalUsersCount } from "@/lib/data/users"
 
 // Mock data for dashboard
 const propertyStats = [
@@ -58,18 +60,49 @@ const cityDistribution = [
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [timeFilter, setTimeFilter] = useState("6months")
+  const [totalProperties, setTotalProperties] = useState<number>(0)
+  const [totalUsers, setTotalUsers] = useState<number>(0)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch data from database
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true)
+        
+        // Fetch total properties count
+        const { count: propertiesCount, error: propertiesError } = await PropertyService.getTotalPropertiesCount()
+        if (!propertiesError) {
+          setTotalProperties(propertiesCount)
+        } else {
+          console.error('Error fetching properties count:', propertiesError)
+        }
+
+        // Fetch total users count
+        const usersCount = await getTotalUsersCount()
+        setTotalUsers(usersCount)
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
   
   const statistics = [
     {
       title: "Total Properties",
-      value: "245",
+      value: isLoading ? "..." : totalProperties.toString(),
       change: "+18% from last month",
       trend: "up",
       icon: <Building className="h-5 w-5 text-emerald-600" />
     },
     {
       title: "Total Users",
-      value: "1,234",
+      value: isLoading ? "..." : totalUsers.toLocaleString(),
       change: "+12% from last month",
       trend: "up",
       icon: <Users className="h-5 w-5 text-blue-600" />
