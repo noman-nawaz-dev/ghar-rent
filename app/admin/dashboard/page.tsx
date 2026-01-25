@@ -126,15 +126,15 @@ export default function AdminDashboardPage() {
     {
       title: "Total Properties",
       value: isLoading ? "..." : totalProperties.toString(),
-      change: "+18% from last month",
-      trend: "up",
+      change: isLoading ? "..." : propertiesChange,
+      trend: propertiesTrend,
       icon: <Building className="h-5 w-5 text-emerald-600" />
     },
     {
       title: "Total Users",
       value: isLoading ? "..." : totalUsers.toLocaleString(),
-      change: "+12% from last month",
-      trend: "up",
+      change: isLoading ? "..." : usersChange,
+      trend: usersTrend,
       icon: <Users className="h-5 w-5 text-blue-600" />
     },
     {
