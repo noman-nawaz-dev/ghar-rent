@@ -439,4 +439,31 @@ export async function getTotalUsersCount(): Promise<number> {
     console.error('Error in getTotalUsersCount:', error);
     return 0;
   }
+}
+
+/**
+ * Get users count for last month
+ */
+export async function getUsersCountForLastMonth(): Promise<number> {
+  try {
+    // Calculate date range for last month
+    const now = new Date();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .lte('created_at', lastMonthEnd.toISOString());
+
+    if (error) {
+      console.error('Error fetching users count for last month:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Error in getUsersCountForLastMonth:', error);
+    return 0;
+  }
 } 

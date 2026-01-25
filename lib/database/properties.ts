@@ -343,4 +343,25 @@ export class PropertyService {
       return { count: 0, error };
     }
   }
+
+  /**
+   * Get properties count for last month
+   */
+  static async getPropertiesCountForLastMonth(): Promise<{ count: number; error: any }> {
+    try {
+      // Calculate date range for last month
+      const now = new Date();
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      
+      const { count, error } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .lte('created_at', lastMonthEnd.toISOString());
+
+      return { count: count || 0, error };
+    } catch (error) {
+      return { count: 0, error };
+    }
+  }
 } 
