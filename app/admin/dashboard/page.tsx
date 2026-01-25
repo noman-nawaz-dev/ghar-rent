@@ -31,7 +31,7 @@ import { AdminPropertiesTable } from "@/components/admin/properties-table"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PropertyService } from "@/lib/database/properties"
-import { getTotalUsersCount } from "@/lib/data/users"
+import { getTotalUsersCount, getUsersCountForLastMonth } from "@/lib/data/users"
 
 // Mock data for dashboard
 const propertyStats = [
@@ -62,6 +62,10 @@ export default function AdminDashboardPage() {
   const [timeFilter, setTimeFilter] = useState("6months")
   const [totalProperties, setTotalProperties] = useState<number>(0)
   const [totalUsers, setTotalUsers] = useState<number>(0)
+  const [propertiesChange, setPropertiesChange] = useState<string>("")
+  const [usersChange, setUsersChange] = useState<string>("")
+  const [propertiesTrend, setPropertiesTrend] = useState<"up" | "down">("up")
+  const [usersTrend, setUsersTrend] = useState<"up" | "down">("up")
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch data from database
@@ -78,9 +82,35 @@ export default function AdminDashboardPage() {
           console.error('Error fetching properties count:', propertiesError)
         }
 
+        // Fetch properties count for last month to calculate change
+        const { count: lastMonthPropertiesCount, error: lastMonthPropertiesError } = await PropertyService.getPropertiesCountForLastMonth()
+        if (!lastMonthPropertiesError && lastMonthPropertiesCount > 0) {
+          const change = ((propertiesCount - lastMonthPropertiesCount) / lastMonthPropertiesCount) * 100
+          const changeText = change >= 0 
+            ? `+${change.toFixed(0)}% from last month` 
+            : `${change.toFixed(0)}% from last month`
+          setPropertiesChange(changeText)
+          setPropertiesTrend(change >= 0 ? "up" : "down")
+        } else {
+          setPropertiesChange("No data from last month")
+        }
+
         // Fetch total users count
         const usersCount = await getTotalUsersCount()
         setTotalUsers(usersCount)
+
+        // Fetch users count for last month to calculate change
+        const lastMonthUsersCount = await getUsersCountForLastMonth()
+        if (lastMonthUsersCount > 0) {
+          const change = ((usersCount - lastMonthUsersCount) / lastMonthUsersCount) * 100
+          const changeText = change >= 0 
+            ? `+${change.toFixed(0)}% from last month` 
+            : `${change.toFixed(0)}% from last month`
+          setUsersChange(changeText)
+          setUsersTrend(change >= 0 ? "up" : "down")
+        } else {
+          setUsersChange("No data from last month")
+        }
         
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
