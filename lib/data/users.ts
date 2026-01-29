@@ -466,4 +466,53 @@ export async function getUsersCountForLastMonth(): Promise<number> {
     console.error('Error in getUsersCountForLastMonth:', error);
     return 0;
   }
+}
+
+/**
+ * Get user distribution by role
+ */
+export async function getUserDistributionByRole(): Promise<{ name: string; value: number }[]> {
+  try {
+    // Get count of sellers
+    const { count: sellersCount, error: sellersError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'seller');
+
+    // Get count of buyers
+    const { count: buyersCount, error: buyersError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'buyer');
+
+    // Get count of admins
+    const { count: adminsCount, error: adminsError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'admin');
+
+    if (sellersError || buyersError || adminsError) {
+      console.error('Error fetching user distribution:', { sellersError, buyersError, adminsError });
+      return [];
+    }
+
+    const distribution = [];
+    
+    if (sellersCount && sellersCount > 0) {
+      distribution.push({ name: 'Sellers', value: sellersCount });
+    }
+    
+    if (buyersCount && buyersCount > 0) {
+      distribution.push({ name: 'Buyers', value: buyersCount });
+    }
+    
+    if (adminsCount && adminsCount > 0) {
+      distribution.push({ name: 'Admins', value: adminsCount });
+    }
+
+    return distribution;
+  } catch (error) {
+    console.error('Error in getUserDistributionByRole:', error);
+    return [];
+  }
 } 
