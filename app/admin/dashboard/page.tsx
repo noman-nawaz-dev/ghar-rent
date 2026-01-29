@@ -31,7 +31,7 @@ import { AdminPropertiesTable } from "@/components/admin/properties-table"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PropertyService } from "@/lib/database/properties"
-import { getTotalUsersCount, getUsersCountForLastMonth } from "@/lib/data/users"
+import { getTotalUsersCount, getUsersCountForLastMonth, getUserDistributionByRole } from "@/lib/data/users"
 
 // Mock data for dashboard
 const propertyStats = [
@@ -41,11 +41,6 @@ const propertyStats = [
   { month: 'Apr', properties: 18, rented: 14, revenue: 950000 },
   { month: 'May', properties: 20, rented: 15, revenue: 1125000 },
   { month: 'Jun', properties: 22, rented: 17, revenue: 1275000 },
-]
-
-const userDistribution = [
-  { name: 'Sellers', value: 35 },
-  { name: 'Buyers', value: 65 },
 ]
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
@@ -66,6 +61,7 @@ export default function AdminDashboardPage() {
   const [usersChange, setUsersChange] = useState<string>("")
   const [propertiesTrend, setPropertiesTrend] = useState<"up" | "down">("up")
   const [usersTrend, setUsersTrend] = useState<"up" | "down">("up")
+  const [userDistribution, setUserDistribution] = useState<{ name: string; value: number }[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch data from database
@@ -111,6 +107,10 @@ export default function AdminDashboardPage() {
         } else {
           setUsersChange("No data from last month")
         }
+
+        // Fetch user distribution by role
+        const distribution = await getUserDistributionByRole()
+        setUserDistribution(distribution)
         
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -279,25 +279,35 @@ export default function AdminDashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={userDistribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {userDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">Loading...</p>
+                      </div>
+                    ) : userDistribution.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">No user data available</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={userDistribution}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {userDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </CardContent>
               </Card>
