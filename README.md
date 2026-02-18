@@ -1,2 +1,2 @@
 Ghar Rent for Pakistan Residents
-You cann sign in as Seller/Buyer
+You cann sign in as Seller/Buyer/Admin
