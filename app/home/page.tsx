@@ -203,6 +203,7 @@ export default function HomePage() {
                 <PropertyCard 
                   key={property.id}
                   property={property}
+                  showDescription={false}
                 />
               ))}
             </div>

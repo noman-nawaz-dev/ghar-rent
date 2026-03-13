@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils"
 import type { PropertyRow } from "@/lib/database/properties"
 interface PropertyCardProps {
   property: PropertyRow;
+  showDescription?: boolean;
 }
 
-export default function PropertyCard({ property }: PropertyCardProps) {
+export default function PropertyCard({ property, showDescription = true }: PropertyCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
   
@@ -111,7 +112,9 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <MapPin className="h-3.5 w-3.5 mr-1" />
             <span className="text-sm">{property.address}, {property.city}</span>
           </div>
-          <p className="text-muted-foreground mb-4 text-sm line-clamp-2">{property.description}</p>
+          {showDescription && (
+            <p className="text-muted-foreground mb-4 text-sm line-clamp-2">{property.description}</p>
+          )}
           
           <div className="flex justify-between items-center">
             <div className="flex space-x-4">
