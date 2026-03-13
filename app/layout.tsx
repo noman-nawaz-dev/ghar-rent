@@ -23,6 +23,20 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: 'GharRent - Pakistan\'s House Rental Platform',
   description: 'Find your perfect rental home in Pakistan with GharRent - The modern way to rent properties in Pakistan.',
+  icons: {
+    icon: [
+      {
+        url: 'https://res.cloudinary.com/daqkcvsfl/image/upload/v1773434008/ChatGPT_Image_Mar_14_2026_01_18_13_AM_ism8cy.png',
+        type: 'image/png',
+      },
+    ],
+    shortcut: [
+      'https://res.cloudinary.com/daqkcvsfl/image/upload/v1773434008/ChatGPT_Image_Mar_14_2026_01_18_13_AM_ism8cy.png',
+    ],
+    apple: [
+      'https://res.cloudinary.com/daqkcvsfl/image/upload/v1773434008/ChatGPT_Image_Mar_14_2026_01_18_13_AM_ism8cy.png',
+    ],
+  },
 };
 
 export default function RootLayout({
